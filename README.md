@@ -453,7 +453,7 @@ Current limitations to be aware of:
 ### 1. Clone The Repository
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Adityatorgal17/AI-Assistant-Conversation-Analysis
 cd HelioAI
 ```
 
