@@ -1,0 +1,177 @@
+[
+  {
+    "widgetId": "680a0a8b70a26f7a0e24eedd",
+    "brandName": "Bluetea",
+    "totalConversations": 100,
+    "qualityBreakdown": {
+      "bad": 54,
+      "good": 30,
+      "neutral": 16
+    },
+    "outcomeBreakdown": {
+      "drop_off": 34,
+      "unresolved": 31,
+      "resolved": 31,
+      "risk_flagged": 4
+    },
+    "topIntents": [
+      {
+        "intent": "product_discovery",
+        "count": 46
+      },
+      {
+        "intent": "order_support",
+        "count": 34
+      },
+      {
+        "intent": "product_page_question",
+        "count": 17
+      },
+      {
+        "intent": "greeting",
+        "count": 3
+      }
+    ],
+    "topProblems": [
+      {
+        "problem": "risk_flagged",
+        "count": 30
+      },
+      {
+        "problem": "unresolved_need",
+        "count": 23
+      },
+      {
+        "problem": "order_friction",
+        "count": 13
+      }
+    ],
+    "summaryPoints": [
+      "54 of 100 conversations are scored as bad quality.",
+      "Top intent is product_discovery with 46 conversations.",
+      "31 conversations are flagged as unresolved.",
+      "13 conversations show order-flow friction.",
+      "20 recommendation conversations led to user follow-through events."
+    ]
+  },
+  {
+    "widgetId": "6983153e1497a62e8542a0ad",
+    "brandName": "Bluenectar",
+    "totalConversations": 100,
+    "qualityBreakdown": {
+      "bad": 31,
+      "neutral": 66,
+      "good": 3
+    },
+    "outcomeBreakdown": {
+      "unresolved": 15,
+      "resolved": 66,
+      "drop_off": 19
+    },
+    "topIntents": [
+      {
+        "intent": "product_page_question",
+        "count": 64
+      },
+      {
+        "intent": "product_discovery",
+        "count": 17
+      },
+      {
+        "intent": "order_support",
+        "count": 11
+      },
+      {
+        "intent": "greeting",
+        "count": 6
+      },
+      {
+        "intent": "other",
+        "count": 2
+      }
+    ],
+    "topProblems": [
+      {
+        "problem": "unresolved_need",
+        "count": 17
+      },
+      {
+        "problem": "risk_flagged",
+        "count": 11
+      },
+      {
+        "problem": "order_friction",
+        "count": 4
+      }
+    ],
+    "summaryPoints": [
+      "31 of 100 conversations are scored as bad quality.",
+      "Top intent is product_page_question with 64 conversations.",
+      "15 conversations are flagged as unresolved.",
+      "4 conversations show order-flow friction.",
+      "2 recommendation conversations led to user follow-through events."
+    ]
+  },
+  {
+    "widgetId": "69a92ad76dcbf2da868e0f9b",
+    "brandName": "Srisritattva",
+    "totalConversations": 100,
+    "qualityBreakdown": {
+      "bad": 62,
+      "neutral": 32,
+      "good": 6
+    },
+    "outcomeBreakdown": {
+      "drop_off": 33,
+      "login_loop": 5,
+      "unresolved": 24,
+      "risk_flagged": 3,
+      "resolved": 34,
+      "neutral": 1
+    },
+    "topIntents": [
+      {
+        "intent": "product_page_question",
+        "count": 66
+      },
+      {
+        "intent": "order_support",
+        "count": 24
+      },
+      {
+        "intent": "other",
+        "count": 6
+      },
+      {
+        "intent": "product_discovery",
+        "count": 4
+      }
+    ],
+    "topProblems": [
+      {
+        "problem": "unresolved_need",
+        "count": 29
+      },
+      {
+        "problem": "risk_flagged",
+        "count": 18
+      },
+      {
+        "problem": "order_friction",
+        "count": 6
+      },
+      {
+        "problem": "login_loop",
+        "count": 5
+      }
+    ],
+    "summaryPoints": [
+      "62 of 100 conversations are scored as bad quality.",
+      "Top intent is product_page_question with 66 conversations.",
+      "24 conversations are flagged as unresolved.",
+      "5 conversations show login-loop friction.",
+      "6 conversations show order-flow friction.",
+      "4 recommendation conversations led to user follow-through events."
+    ]
+  }
+]

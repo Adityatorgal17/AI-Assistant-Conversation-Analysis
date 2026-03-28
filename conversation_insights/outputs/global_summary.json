@@ -1,0 +1,61 @@
+{
+  "totalConversations": 300,
+  "qualityBreakdown": {
+    "bad": 147,
+    "good": 39,
+    "neutral": 114
+  },
+  "outcomeBreakdown": {
+    "drop_off": 86,
+    "unresolved": 70,
+    "resolved": 131,
+    "risk_flagged": 7,
+    "login_loop": 5,
+    "neutral": 1
+  },
+  "topIntents": [
+    {
+      "intent": "product_page_question",
+      "count": 147
+    },
+    {
+      "intent": "order_support",
+      "count": 69
+    },
+    {
+      "intent": "product_discovery",
+      "count": 67
+    },
+    {
+      "intent": "greeting",
+      "count": 9
+    },
+    {
+      "intent": "other",
+      "count": 8
+    }
+  ],
+  "topProblems": [
+    {
+      "problem": "unresolved_need",
+      "count": 69
+    },
+    {
+      "problem": "risk_flagged",
+      "count": 59
+    },
+    {
+      "problem": "order_friction",
+      "count": 23
+    },
+    {
+      "problem": "login_loop",
+      "count": 5
+    }
+  ],
+  "summaryPoints": [
+    "147 conversations are currently scored as bad quality.",
+    "The most common intent is product_page_question.",
+    "70 conversations are flagged as unresolved."
+  ]
+}
