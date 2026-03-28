@@ -454,7 +454,7 @@ Current limitations to be aware of:
 
 ```bash
 git clone https://github.com/Adityatorgal17/AI-Assistant-Conversation-Analysis
-cd HelioAI
+cd AI-Assistant-Conversation-Analysis
 ```
 
 ### 2. Create And Activate A Virtual Environment
