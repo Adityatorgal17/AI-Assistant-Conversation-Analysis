@@ -13,7 +13,11 @@ from conversation_insights.config import (
 )
 from conversation_insights.etl import build_grouped_conversations
 from conversation_insights.features import extract_conversation_features
-from conversation_insights.insights import build_dashboard_rows, build_global_summary, build_widget_insights
+from conversation_insights.insights import (
+    build_dashboard_rows,
+    build_global_summary,
+    build_widget_insights,
+)
 from conversation_insights.llm_review import maybe_run_llm_reviews
 from conversation_insights.mongo_store import write_processed_collections
 

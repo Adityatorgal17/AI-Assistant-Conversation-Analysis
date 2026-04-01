@@ -24,8 +24,6 @@ def extract_feature_record(record: GroupedConversationRecord) -> ConversationFea
     user_text_messages = [m.cleanText for m in record.messages if m.sender == "user" and m.messageType == "text" and m.cleanText]
     agent_text_messages = [m.cleanText for m in record.messages if m.sender == "agent" and m.messageType == "text" and m.cleanText]
     event_messages = [m for m in record.messages if m.messageType == "event"]
-    first_user_text = user_text_messages[0] if user_text_messages else None
-    who_ended_conversation = record.messages[-1].sender if record.messages else "unknown"
 
     event_types = sorted({message.eventType for message in event_messages if message.eventType})
     link_click_count = 0
@@ -75,8 +73,6 @@ def extract_feature_record(record: GroupedConversationRecord) -> ConversationFea
         num_event_messages=len(event_messages),
         num_user_turns=len(user_text_messages),
         num_agent_turns=len(agent_text_messages),
-        first_user_text=first_user_text,
-        who_ended_conversation=who_ended_conversation,
     )
     conversation_meta = ConversationMeta(
         eventTypes=event_types,

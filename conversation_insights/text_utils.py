@@ -26,69 +26,6 @@ HINGLISH_TOKENS = {
     "namaste",
 }
 
-FRUSTRATION_PATTERNS = (
-    "nonsense",
-    "not working",
-    "problem",
-    "issue",
-    "waiting",
-    "no message",
-    "no sms",
-    "damaged",
-    "refund",
-    "cancel",
-    "double paid",
-    "wrong",
-    "why",
-)
-
-SAFETY_KEYWORDS = (
-    "pregnant",
-    "pregnancy",
-    "breastfeeding",
-    "feeding mother",
-    "diabetic",
-    "diabetes",
-    "blood sugar",
-    "blood pressure",
-    "thyroid",
-    "pcod",
-    "pcos",
-    "glaucoma",
-    "parkinson",
-    "dosage",
-    "side effect",
-    "safe for",
-    "can i take",
-    "can i use",
-    "doctor",
-    "dermatologist",
-)
-
-CLAIM_RISK_KEYWORDS = (
-    "blood sugar",
-    "blood pressure",
-    "diabetes",
-    "cholesterol",
-    "glaucoma",
-    "parkinson",
-    "prevents",
-    "cure",
-    "treats",
-    "dosage",
-    "take **",
-)
-
-SAFETY_DISCLAIMER_KEYWORDS = (
-    "consult your doctor",
-    "consult your dermatologist",
-    "consult a doctor",
-    "consult your physician",
-    "patch test",
-    "breastfeeding",
-    "pregnant",
-)
-
 ORDER_KEYWORDS = (
     "order",
     "refund",
@@ -135,49 +72,6 @@ LOGIN_HINTS = (
     "account access",
 )
 
-TRACKING_HINTS = (
-    "track order",
-    "track shipment",
-    "track package",
-    "order status",
-    "shipment status",
-    "delivery status",
-    "/track",
-)
-
-HELP_HINTS = (
-    "whatsapp",
-    "support",
-    "help",
-    "contact",
-    "policy",
-    "faq",
-    "customer care",
-)
-
-ORDER_PROGRESS_HINTS = (
-    "status:",
-    "in transit",
-    "out for delivery",
-    "shipped",
-    "delivered",
-    "processing",
-    "cancelled",
-    "refunded",
-    "recent order details",
-    "order details",
-)
-
-ORDER_PROMPT_HINTS = (
-    "order number",
-    "phone number",
-    "email address",
-    "registered phone",
-    "track your order",
-    "share your order details",
-    "sign in to your account",
-)
-
 
 def clean_agent_text(raw_text: str) -> str:
     marker_match = EMBEDDED_JSON_RE.search(raw_text)
@@ -197,11 +91,6 @@ def normalize_text(text: str) -> str:
     text = re.sub(r"https?://\S+", "", text)
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     return normalize_whitespace(text)
-
-
-def contains_any(text: str, keywords: tuple[str, ...] | list[str]) -> bool:
-    lowered = text.lower()
-    return any(keyword in lowered for keyword in keywords)
 
 
 def detect_language_style(text: str) -> str:
@@ -252,21 +141,6 @@ def is_product_link(value: str) -> bool:
         token in lowered or token in path
         for token in ("/products/", "/product/", "/item/", "viewed product:", "requested similar products to")
     )
-
-
-def is_tracking_link(value: str) -> bool:
-    lowered = value.lower()
-    parsed = urlparse(value)
-    path = parsed.path.lower()
-    return any(token in lowered or token in path for token in TRACKING_HINTS)
-
-
-def is_help_link(value: str) -> bool:
-    lowered = value.lower()
-    parsed = urlparse(value)
-    path = parsed.path.lower()
-    host = parsed.netloc.lower()
-    return any(token in lowered or token in path or token in host for token in HELP_HINTS)
 
 
 def is_login_link(value: str) -> bool:

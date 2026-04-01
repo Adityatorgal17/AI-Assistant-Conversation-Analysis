@@ -27,7 +27,7 @@ st.set_page_config(
 
 def main() -> None:
     st.title("Conversation Insights Dashboard")
-    st.caption("Per-widget and per-conversation analysis built from processed conversation records.")
+    st.caption("Global summary and widget-level deep dive from processed conversation records.")
 
     source = st.sidebar.radio("Data source", ["JSON outputs", "MongoDB"], index=0)
     if source == "JSON outputs":
@@ -41,54 +41,38 @@ def main() -> None:
         st.error("No dashboard rows were found. Run the processing pipeline first.")
         return
 
-    widget_filter = build_filters(data["dashboard_rows"])
-    render_global_overview(data["global_summary"], widget_filter["filtered_rows"])
-    st.divider()
-    render_widget_insights(data["widget_insights"], widget_filter["selected_widget_id"])
-    st.divider()
-    render_conversation_table(widget_filter["filtered_rows"], widget_filter["widget_lookup"])
-    st.divider()
-    render_conversation_detail(
-        dashboard_rows=widget_filter["filtered_rows"],
-        features=data["conversation_features"],
-        grouped=data["grouped_conversations"],
-        widget_lookup=widget_filter["widget_lookup"],
-    )
-
-
-def build_filters(dashboard_rows: list[dict[str, Any]]) -> dict[str, Any]:
-    widget_options = build_widget_options(dashboard_rows)
-    widget_labels = ["All"] + [item["label"] for item in widget_options]
+    widget_options = build_widget_options(data["dashboard_rows"])
     widget_lookup = {item["widgetId"]: item["label"] for item in widget_options}
     label_to_id = {item["label"]: item["widgetId"] for item in widget_options}
 
-    qualities = sorted({row["quality"] for row in dashboard_rows})
-    outcomes = sorted({row["conversationOutcome"] for row in dashboard_rows})
-    intents = sorted({row["initialIntent"] for row in dashboard_rows})
+    view_mode = st.sidebar.radio("View", ["Global Summary", "Widget Insights"], index=0)
 
-    selected_widget_label = st.sidebar.selectbox("Widget", options=widget_labels, index=0)
-    selected_widget_id = None if selected_widget_label == "All" else label_to_id[selected_widget_label]
-    selected_qualities = st.sidebar.multiselect("Quality", options=qualities, default=qualities)
-    selected_outcomes = st.sidebar.multiselect("Outcome", options=outcomes, default=outcomes)
-    selected_intents = st.sidebar.multiselect("Intent", options=intents, default=intents)
+    if view_mode == "Global Summary":
+        render_global_overview(data["global_summary"], data["dashboard_rows"])
+        return
 
-    filtered_rows = []
-    for row in dashboard_rows:
-        if selected_widget_id and row["widgetId"] != selected_widget_id:
-            continue
-        if row["quality"] not in selected_qualities:
-            continue
-        if row["conversationOutcome"] not in selected_outcomes:
-            continue
-        if row["initialIntent"] not in selected_intents:
-            continue
-        filtered_rows.append(row)
+    if not widget_options:
+        st.info("No widget data is available.")
+        return
 
-    return {
-        "selected_widget_id": selected_widget_id,
-        "filtered_rows": filtered_rows,
-        "widget_lookup": widget_lookup,
-    }
+    selected_widget_label = st.sidebar.selectbox(
+        "Select Widget",
+        options=[item["label"] for item in widget_options],
+        index=0,
+    )
+    selected_widget_id = label_to_id[selected_widget_label]
+    widget_rows = [row for row in data["dashboard_rows"] if row["widgetId"] == selected_widget_id]
+
+    render_widget_insights(data["widget_insights"], selected_widget_id)
+    st.divider()
+    render_conversation_table(widget_rows, widget_lookup)
+    st.divider()
+    render_conversation_detail(
+        dashboard_rows=widget_rows,
+        features=data["conversation_features"],
+        grouped=data["grouped_conversations"],
+        widget_lookup=widget_lookup,
+    )
 
 
 def build_widget_options(dashboard_rows: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -108,25 +92,28 @@ def build_widget_options(dashboard_rows: list[dict[str, Any]]) -> list[dict[str,
     return options
 
 
-def render_global_overview(global_summary: dict[str, Any], filtered_rows: list[dict[str, Any]]) -> None:
-    st.subheader("Overview")
+def render_global_overview(global_summary: dict[str, Any], all_rows: list[dict[str, Any]]) -> None:
+    st.subheader("Global Summary")
 
-    filtered_count = len(filtered_rows)
-    bad_count = sum(row["quality"] == "bad" for row in filtered_rows)
-    unresolved_count = sum(row["unresolved"] for row in filtered_rows)
-    recommendation_count = sum(row["recommendationGiven"] for row in filtered_rows)
+    total_count = len(all_rows)
+    bad_count = sum(row["quality"] == "bad" for row in all_rows)
+    unresolved_count = sum(row["unresolved"] for row in all_rows)
+    recommendation_count = sum(row["recommendationGiven"] for row in all_rows)
+    escalation_needed = sum(row.get("escalationNeeded", False) for row in all_rows)
+    escalation_triggered = sum(row.get("escalationTriggered", False) for row in all_rows)
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Filtered Conversations", filtered_count)
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1.metric("Total Conversations", total_count)
     col2.metric("Bad Quality", bad_count)
     col3.metric("Unresolved", unresolved_count)
     col4.metric("Recommendation Flows", recommendation_count)
+    col5.metric("Escalation Needed", escalation_needed)
+    col6.metric("Escalation Triggered", escalation_triggered)
 
-    with st.expander("Global Summary", expanded=True):
-        if global_summary:
-            st.json(global_summary)
-        else:
-            st.info("Global summary is not available.")
+    if global_summary:
+        st.json(global_summary)
+    else:
+        st.info("Global summary is not available.")
 
 
 def render_widget_insights(widget_insights: list[dict[str, Any]], selected_widget_id: str | None) -> None:
@@ -163,6 +150,58 @@ def render_widget_insights(widget_insights: list[dict[str, Any]], selected_widge
                 st.markdown("**Top Problems**")
                 st.table(insight["topProblems"] or [{"problem": "none", "count": 0}])
 
+            if insight.get("qualityDimensionsAggregate"):
+                st.markdown("**Quality Dimension Averages (-2 to +2)**")
+                st.json(insight["qualityDimensionsAggregate"])
+
+            recommendations = insight.get("recommendations", [])
+            st.markdown("**Recommendations**")
+            if not recommendations:
+                st.info("No recommendations available for this widget.")
+            else:
+                for idx, rec in enumerate(recommendations, start=1):
+                    with st.expander(f"{idx}. {rec.get('title', 'Untitled Recommendation')}", expanded=(idx == 1)):
+                        meta_col1, meta_col2, meta_col3 = st.columns(3)
+                        meta_col1.metric("Severity", str(rec.get("severity", "unknown")).upper())
+                        meta_col2.metric("Related Count", rec.get("relatedCount", 0))
+                        percentage_value = rec.get("percentage")
+                        if isinstance(percentage_value, (int, float)):
+                            meta_col3.metric("Affected", f"{percentage_value:.1f}%")
+                        else:
+                            meta_col3.metric("Affected", "N/A")
+
+                        description = rec.get("description")
+                        if description:
+                            st.write(description)
+
+                        causes_col, actions_col = st.columns(2)
+                        with causes_col:
+                            st.markdown("**Root Causes**")
+                            causes = rec.get("rootCauses", [])
+                            if causes:
+                                for cause in causes:
+                                    st.write(f"- {cause}")
+                            else:
+                                st.write("- Not available")
+
+                        with actions_col:
+                            st.markdown("**Suggested Actions**")
+                            actions = rec.get("suggestedActions", [])
+                            if actions:
+                                for action in actions:
+                                    st.write(f"- {action}")
+                            else:
+                                st.write("- Not available")
+
+            with st.expander("Mistake Counters", expanded=False):
+                left, right = st.columns(2)
+                with left:
+                    st.markdown("**Assistant Mistakes**")
+                    st.json(insight.get("assistantMistakes", {}))
+                with right:
+                    st.markdown("**User Mistakes**")
+                    st.json(insight.get("userMistakes", {}))
+
 
 def render_conversation_table(filtered_rows: list[dict[str, Any]], widget_lookup: dict[str, str]) -> None:
     st.subheader("Conversation Table")
@@ -184,6 +223,15 @@ def render_conversation_table(filtered_rows: list[dict[str, Any]], widget_lookup
                 "unresolved": row["unresolved"],
                 "badRecommendation": row["badRecommendation"],
                 "possibleClaimRisk": row["possibleClaimRisk"],
+                "accuracy": row.get("qualityAccuracy", 0),
+                "relevance": row.get("qualityRelevance", 0),
+                "clarity": row.get("qualityClarity", 0),
+                "helpfulness": row.get("qualityHelpfulness", 0),
+                "tone": row.get("qualityTone", 0),
+                "efficiency": row.get("qualityEfficiency", 0),
+                "escalationNeeded": row.get("escalationNeeded", False),
+                "escalationTriggered": row.get("escalationTriggered", False),
+                "escalationResolved": row.get("escalationResolved", False),
                 "messages": row["numMessages"],
             }
         )
@@ -228,11 +276,32 @@ def render_conversation_detail(
         st.info("Grouped conversation record not available.")
         return
 
+    # Chat-like layout: user left, assistant right
     for message in grouped_row["messages"]:
-        speaker = message["sender"].upper()
-        badge = f"`{message['messageType']}`"
-        st.markdown(f"**{speaker}** {badge}  \n{message['cleanText'] or message['rawText']}")
-        st.caption(message["timestamp"])
+        sender = message["sender"].lower()
+        text = message["cleanText"] or message["rawText"]
+        timestamp = message["timestamp"]
+        message_type = message["messageType"]
+        
+        if sender == "user":
+            # User message: left side (blue background)
+            left_col, right_col = st.columns([1, 3])
+            with left_col:
+                st.markdown(f"**USER** `{message_type}`")
+                st.caption(timestamp)
+            with right_col:
+                st.markdown(f"<div style='background-color: #1976d2; color: white; padding: 12px; border-radius: 8px; font-size: 14px;'>{text}</div>", unsafe_allow_html=True)
+        
+        elif sender == "agent":
+            # Agent message: right side (purple background)
+            left_col, right_col = st.columns([3, 1])
+            with left_col:
+                st.markdown(f"<div style='background-color: #7b1fa2; color: white; padding: 12px; border-radius: 8px; font-size: 14px;'>{text}</div>", unsafe_allow_html=True)
+            with right_col:
+                st.markdown(f"**AGENT** `{message_type}`")
+                st.caption(timestamp)
+        
+        st.divider()
 
 
 @st.cache_data(show_spinner=False)

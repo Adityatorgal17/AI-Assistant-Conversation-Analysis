@@ -1,61 +1,159 @@
 {
   "totalConversations": 300,
   "qualityBreakdown": {
-    "bad": 147,
-    "good": 39,
-    "neutral": 114
+    "bad": 138,
+    "good": 119,
+    "neutral": 43
   },
   "outcomeBreakdown": {
-    "drop_off": 86,
-    "unresolved": 70,
-    "resolved": 131,
-    "risk_flagged": 7,
-    "login_loop": 5,
+    "unresolved": 157,
+    "drop_off": 23,
+    "resolved": 115,
+    "risk_flagged": 4,
     "neutral": 1
   },
   "topIntents": [
     {
       "intent": "product_page_question",
-      "count": 147
+      "count": 152
     },
     {
       "intent": "order_support",
-      "count": 69
+      "count": 83
     },
     {
       "intent": "product_discovery",
-      "count": 67
-    },
-    {
-      "intent": "greeting",
-      "count": 9
+      "count": 50
     },
     {
       "intent": "other",
       "count": 8
+    },
+    {
+      "intent": "greeting",
+      "count": 7
     }
   ],
   "topProblems": [
     {
-      "problem": "unresolved_need",
-      "count": 69
-    },
-    {
       "problem": "risk_flagged",
-      "count": 59
+      "count": 76
     },
     {
       "problem": "order_friction",
-      "count": 23
+      "count": 65
+    },
+    {
+      "problem": "unresolved_need",
+      "count": 57
     },
     {
       "problem": "login_loop",
-      "count": 5
+      "count": 7
     }
   ],
   "summaryPoints": [
-    "147 conversations are currently scored as bad quality.",
+    "138 conversations are currently scored as bad quality.",
     "The most common intent is product_page_question.",
-    "70 conversations are flagged as unresolved."
-  ]
+    "157 conversations are flagged as unresolved."
+  ],
+  "recommendations": [
+    {
+      "title": "Brand Bluetea Above Bad-Quality Baseline",
+      "severity": "high",
+      "relatedCount": 57,
+      "percentage": 56.99999999999999,
+      "description": "Bluetea has 57.0% bad-quality conversations, above dynamic cross-brand threshold.",
+      "rootCauses": [
+        "Brand-specific intent mix may be harder",
+        "Knowledge coverage may be weaker for this brand",
+        "Escalation path may be less effective"
+      ],
+      "suggestedActions": [
+        "Develop a cross-functional task force to analyze and address the root causes of Bluetea's poor performance",
+        "Implement a benchmarking program to adopt best practices from top-performing brands like Bluenectar",
+        "Create a data-driven prioritization framework to guide the implementation of fixes for high-volume failure intents"
+      ],
+      "affectedCategories": [
+        "all"
+      ],
+      "metricBaseline": 0.57,
+      "metricTarget": 0.47,
+      "interventionEffort": "medium",
+      "interventionRisk": "medium",
+      "hypothesis": "Targeted brand-level fixes should materially reduce bad-quality rates."
+    },
+    {
+      "title": "Global Compliance Gap",
+      "severity": "critical",
+      "relatedCount": 78,
+      "percentage": 26.0,
+      "description": "78 conversations include risk-sensitive claims without disclaimer coverage.",
+      "rootCauses": [
+        "Compliance checks are inconsistently applied",
+        "Risk-sensitive wording is not always detected",
+        "Fallback disclaimer insertion is missing"
+      ],
+      "suggestedActions": [
+        "Implement AI-powered compliance monitoring to detect and prevent non-compliant responses in real-time, as seen in best performer Bluenectar",
+        "Develop a comprehensive risk assessment framework to identify and mitigate potential compliance risks, and expand risk term detection coverage to 100% of conversations",
+        "Establish a centralized compliance knowledge base and require all customer service agents to undergo regular training and certification programs to ensure consistency and adherence to compliance standards"
+      ],
+      "affectedCategories": [
+        "risk_and_compliance"
+      ],
+      "metricBaseline": 0.26,
+      "metricTarget": 0.14,
+      "interventionEffort": "low",
+      "interventionRisk": "medium",
+      "hypothesis": "Centralized compliance checks should reduce safety-risk output incidence."
+    }
+  ],
+  "crossBrandFindings": {
+    "brandComparison": {
+      "680a0a8b70a26f7a0e24eedd": {
+        "brandName": "Bluetea",
+        "badPercentage": 56.99999999999999,
+        "totalConversations": 100
+      },
+      "6983153e1497a62e8542a0ad": {
+        "brandName": "Bluenectar",
+        "badPercentage": 28.999999999999996,
+        "totalConversations": 100
+      },
+      "69a92ad76dcbf2da868e0f9b": {
+        "brandName": "Srisritattva",
+        "badPercentage": 52.0,
+        "totalConversations": 100
+      }
+    },
+    "totalConversations": 300,
+    "globalBadQualityPercentage": 46.0
+  },
+  "assistantMistakesGlobal": {
+    "hallucinating": 0,
+    "wrong_product_suggestion": 0,
+    "health_claim_without_disclaimer": 67,
+    "failed_escalation": 1,
+    "no_recommendation_when_needed": 1,
+    "repetition": 53,
+    "short_answer": 0,
+    "evasive_answer": 2
+  },
+  "userMistakesGlobal": {
+    "never_responded": 48,
+    "did_not_provide_required_info": 24,
+    "asked_unrelated_questions": 5,
+    "ordering_mistake": 1,
+    "did_not_follow_instructions": 1
+  },
+  "qualityDimensionsGlobal": {
+    "accuracy": 1.41,
+    "relevance": 1.5066666666666666,
+    "clarity": 1.51,
+    "helpfulness": 1.2266666666666666,
+    "tone": 1.39,
+    "efficiency": 0.8966666666666666,
+    "escalation_handling": 0.023333333333333334
+  }
 }

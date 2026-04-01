@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import re
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
 from conversation_insights.config import PACKAGE_DIR
 from conversation_insights.env_utils import load_env_file
-from conversation_insights.models import ConversationFeatureRecord, GroupedConversationRecord
+from conversation_insights.models import ConversationFeatureRecord, GroupedConversationRecord, QualityDimensions
 from conversation_insights.text_utils import (
     ORDER_KEYWORDS,
     PRODUCT_DISCOVERY_KEYWORDS,
@@ -24,7 +24,7 @@ CACHE_SCHEMA_VERSION = 1
 
 try:
     from groq import Groq
-except ImportError:  # pragma: no cover - dependency may be absent until installed
+except ImportError:  # pragma: no cover
     Groq = None
 
 
@@ -52,6 +52,27 @@ class ReviewResult:
     issues: list[str]
     summary: str
     feedback_text: str
+    user_never_responded: bool = False
+    user_did_not_provide_required_info: bool = False
+    user_asked_unrelated_questions: bool = False
+    user_ordering_mistake: bool = False
+    user_did_not_follow_instructions: bool = False
+    assistant_hallucinating: bool = False
+    assistant_wrong_product_suggestion: bool = False
+    assistant_health_claim_without_disclaimer: bool = False
+    assistant_failed_escalation: bool = False
+    assistant_no_recommendation_when_needed: bool = False
+    user_engaged: bool = False
+    recommendation_converted: bool = False
+    problem_could_be_resolved: bool = False
+
+    # New production fields
+    quality_dimensions: QualityDimensions = field(default_factory=QualityDimensions)
+    escalation_needed: bool | None = None
+    escalation_triggered: bool | None = None
+    escalation_resolved: bool | None = None
+    time_to_escalation_seconds: int | None = None
+    resolution_blockers: dict[str, str] = field(default_factory=dict)
 
 
 class GroqReviewer:
@@ -117,7 +138,7 @@ class GroqReviewer:
                         {
                             "role": "system",
                             "content": (
-                                "You review one ecommerce assistant conversation with high precision. "
+                                "You review one assistant conversation with high precision. "
                                 "Return ONLY valid JSON. Do not add markdown, prose, or code fences."
                             ),
                         },
@@ -128,7 +149,7 @@ class GroqReviewer:
                 if len(self.clients) > 1:
                     self.client_index = (self.client_index + 1) % len(self.clients)
                 return parse_review_json(content)
-            except Exception as exc:  # pragma: no cover - runtime API path
+            except Exception as exc:  # pragma: no cover
                 last_error = exc
                 if is_rate_limit_error(exc):
                     wait_seconds = parse_retry_after_seconds(str(exc)) or 60.0
@@ -187,10 +208,7 @@ def maybe_run_llm_reviews(
             "LLM review is mandatory for all conversations."
         )
 
-    reviewer = GroqReviewer(
-        api_keys=api_keys,
-        cache_path=output_dir / "llm_review_cache.json",
-    )
+    reviewer = GroqReviewer(api_keys=api_keys, cache_path=output_dir / "llm_review_cache.json")
     return reviewer.review_conversations(grouped_records, feature_records)
 
 
@@ -221,11 +239,9 @@ def discover_groq_keys(env_values: dict[str, str]) -> list[str]:
 def _groq_key_sort_key(name: str) -> tuple[int, int]:
     if name == "GROQ_API_KEY":
         return (0, 0)
-
     match = re.fullmatch(r"GROQ_API_KEY_?(\d+)", name)
     if match:
         return (1, int(match.group(1)))
-
     return (2, 0)
 
 
@@ -235,14 +251,10 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         text = (message.cleanText or message.rawText).strip()
         if len(text) > 1000:
             text = text[:1000] + "..."
-        transcript_lines.append(
-            f"[{message.timestamp}] [{message.sender.upper()}] [{message.messageType}] {text}"
-        )
+        transcript_lines.append(f"[{message.timestamp}] [{message.sender.upper()}] [{message.messageType}] {text}")
 
     transcript = "\n".join(transcript_lines)
     observable_meta = {
-        "first_user_text": feature_record.structure.first_user_text,
-        "who_ended_conversation": feature_record.structure.who_ended_conversation,
         "event_types": feature_record.conversationMeta.eventTypes,
         "link_click_count": feature_record.conversationMeta.linkClickCount,
         "product_click_count": feature_record.conversationMeta.productClickCount,
@@ -252,7 +264,6 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         "has_whatsapp_handoff": feature_record.conversationMeta.hasWhatsAppHandoff,
         "contains_product_links": feature_record.conversationMeta.containsProductLinks,
         "num_recommendations_observed": feature_record.conversationMeta.numRecommendationsObserved,
-        "recommended_product_names": feature_record.conversationMeta.recommendedProductNames,
     }
 
     schema = (
@@ -276,6 +287,22 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         '  "unresolved": true,\n'
         '  "primaryProblem": "order_friction | login_loop | bad_recommendation | risk_flagged | unresolved_need | none",\n'
         '  "conversationOutcome": "resolved | unresolved | drop_off | frustrated | order_friction | login_loop | bad_recommendation | risk_flagged | neutral",\n'
+        '  "userNeverResponded": false,\n'
+        '  "userDidNotProvideRequiredInfo": false,\n'
+        '  "userAskedUnrelatedQuestions": false,\n'
+        '  "userOrderingMistake": false,\n'
+        '  "userDidNotFollowInstructions": false,\n'
+        '  "assistantHallucinating": false,\n'
+        '  "assistantWrongProductSuggestion": false,\n'
+        '  "assistantHealthClaimWithoutDisclaimer": false,\n'
+        '  "assistantFailedEscalation": false,\n'
+        '  "assistantNoRecommendationWhenNeeded": false,\n'
+        '  "userEngaged": false,\n'
+        '  "recommendationConverted": false,\n'
+        '  "problemCouldBeResolved": false,\n'
+        '  "qualityDimensions": {"accuracy": 0, "relevance": 0, "clarity": 0, "helpfulness": 0, "tone": 0, "efficiency": 0, "escalationHandling": 0},\n'
+        '  "escalation": {"needed": false, "triggered": false, "resolved": false, "timeToEscalationSeconds": 0},\n'
+        '  "resolutionBlockers": {"rootCause": "", "assistantMitigation": ""},\n'
         '  "issues": ["short_snake_case_tags"],\n'
         '  "summary": "one short factual sentence",\n'
         '  "feedbackText": "one short dashboard-friendly explanation"\n'
@@ -285,82 +312,19 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
     return (
         "<task>\n"
         "Analyze one assistant conversation.\n"
-        "Use the transcript as the source of truth.\n"
-        "Use metadata only as supporting signals.\n"
-        "Be precise and conservative. If something is unclear, choose the generic label instead of inventing facts.\n"
-        "Base intent on the first substantive user need, not on greeting-only openers.\n"
-        "Think through the decision silently, then output JSON only.\n"
+        "Use transcript as source of truth and metadata only as support.\n"
+        "Return ONLY valid JSON using the schema.\n"
+        "For qualityDimensions, use integer scores in [-2, 2].\n"
         "</task>\n\n"
-        "<decision_order>\n"
-        "1. Determine the user's main need from the first substantive request.\n"
-        "2. Determine whether the conversation is resolved, unresolved, dropped off, frustrated, or has a clearer specific failure mode.\n"
-        "3. Identify the main problem if there is one.\n"
-        "4. Then fill intent, language, recommendation, safety, and behavior fields.\n"
-        "</decision_order>\n\n"
-        "<critical_rules>\n"
-        "- Use the transcript as the primary evidence. Metadata may support, but must not override, the transcript.\n"
-        "- Treat hello/hi/hey/hii/namaste as greeting only if no substantive need appears later.\n"
-        "- Mark userRepetition=true when the user repeats the same need, even with slightly different wording.\n"
-        "- Mark assistantRepetition=true when the assistant repeats the same instruction or substantially the same answer.\n"
-        "- Mark containsOrderInstructions=true for requests to sign in, share order number, share phone/email, track order, refund, return, cancel, or other order-resolution steps.\n"
-        "- recommendationGiven=true only for actual product suggestions or product-page recommendations.\n"
-        "- recommendationGiven=false for login links, tracking links, help links, support links, WhatsApp handoff links, account actions, or generic navigation links.\n"
-        "- recommendationRelevant=true only if an actual product recommendation clearly matches the user's need.\n"
-        "- If the assistant repeatedly redirects the user to login or sign-in and the issue remains unresolved, prefer primaryProblem=login_loop.\n"
-        "- If the issue is an order-flow problem without repeated login redirection, prefer primaryProblem=order_friction.\n"
-        "- If primaryProblem=login_loop and the issue is unresolved, prefer conversationOutcome=login_loop unless the conversation is clearly resolved.\n"
-        "- summary should be short and factual.\n"
-        "- feedbackText should explain the outcome or failure mode for a dashboard reader, and should usually add slightly more context than summary.\n"
-        "</critical_rules>\n\n"
-        "<label_guide>\n"
-        "- order_support: tracking, refund, cancel, return, delivery, order status, payment, edit order.\n"
-        "- product_discovery: user wants help choosing a product for a goal, symptom, concern, or preference.\n"
-        "- product_page_question: user asks about a specific named product, ingredient, usage, benefit, suitability, or shipping for a product.\n"
-        "- greeting: greeting only, with no real need yet. If a real need appears later, do not use greeting.\n"
-        "- success: the user's need is clearly satisfied, not just answered.\n"
-        "- unresolved: the user's need still appears open by the end.\n"
-        "- drop_off: the conversation ends without clear resolution or meaningful continued engagement.\n"
-        "- recommendationRelevant: true only if the recommendation clearly fits the user's need.\n"
-        "- containsPossibleClaimRisk: true if the assistant appears to make unsupported medical/health claims or risky suitability claims.\n"
-        "- primaryProblem should be none when there is no clear dominant issue.\n"
-        "- unresolved_need: use when the need remains open but there is no clearer failure mode like login_loop, order_friction, bad_recommendation, or risk_flagged.\n"
-        "</label_guide>\n\n"
-        "<examples>\n"
-        "<example>\n"
-        "User: Where is my order?\n"
-        "Good labels: initialIntent=order_support.\n"
-        "</example>\n"
-        "<example>\n"
-        "User: Which tea is best for weight loss?\n"
-        "Good labels: initialIntent=product_discovery.\n"
-        "</example>\n"
-        "<example>\n"
-        "User: What are the key ingredients in Shatavari?\n"
-        "Good labels: initialIntent=product_page_question.\n"
-        "</example>\n"
-        "<example>\n"
-        "User: Buy ka option nhi aa rha\n"
-        "Good labels: languageStyle=hinglish.\n"
-        "</example>\n"
-        "<example>\n"
-        "User: Hi. I want to lose belly fat after pregnancy.\n"
-        "Good labels: initialIntent=product_discovery, not greeting.\n"
-        "</example>\n"
-        "<example>\n"
-        "Assistant repeats: sign in to your account. User clicks login many times and says already signed in.\n"
-        "Good labels: assistantRepetition=true, containsOrderInstructions=true, primaryProblem=login_loop, conversationOutcome=login_loop.\n"
-        "</example>\n"
-        "<example>\n"
-        "Assistant shares only an account/login link or WhatsApp/support link.\n"
-        "Good labels: recommendationGiven=false.\n"
-        "</example>\n"
-        "<example>\n"
-        "User asks the same question twice with slightly different wording.\n"
-        "Good labels: userRepetition=true.\n"
-        "</example>\n"
-        "</examples>\n\n"
+        "<rules>\n"
+        "- Be conservative. If unclear, choose neutral labels.\n"
+        "- recommendationGiven=true only for product suggestions, not login/help links.\n"
+        "- If unresolved with repeated login redirection, set primaryProblem=login_loop.\n"
+        "- If unresolved order help without login loop, set primaryProblem=order_friction.\n"
+        "- escalation.needed=true when unresolved/frustrated loops suggest human intervention.\n"
+        "- Set escalationHandling low when escalation was needed but not triggered.\n"
+        "</rules>\n\n"
         "<format>\n"
-        "Return ONLY valid JSON using this exact schema:\n"
         f"{schema}\n"
         "</format>\n\n"
         "<metadata>\n"
@@ -396,6 +360,33 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
 
     summary = normalize_optional_string(get_review_value(data, "summary", "summary")) or "No summary returned."
     feedback_text = normalize_optional_string(get_review_value(data, "feedbackText", "feedback_text")) or summary
+
+    quality_data = get_review_value(data, "qualityDimensions", "quality_dimensions", {})
+    escalation_data = get_review_value(data, "escalation", "_escalation", {})
+    blockers_data = get_review_value(data, "resolutionBlockers", "resolution_blockers", {})
+
+    if not isinstance(quality_data, dict):
+        quality_data = {}
+    if not isinstance(escalation_data, dict):
+        escalation_data = {}
+    if not isinstance(blockers_data, dict):
+        blockers_data = {}
+
+    quality_dimensions = QualityDimensions(
+        accuracy=clamp_dimension(quality_data.get("accuracy", 0)),
+        relevance=clamp_dimension(quality_data.get("relevance", 0)),
+        clarity=clamp_dimension(quality_data.get("clarity", 0)),
+        helpfulness=clamp_dimension(quality_data.get("helpfulness", 0)),
+        tone=clamp_dimension(quality_data.get("tone", 0)),
+        efficiency=clamp_dimension(quality_data.get("efficiency", 0)),
+        escalation_handling=clamp_dimension(quality_data.get("escalationHandling", quality_data.get("escalation_handling", 0))),
+    )
+
+    resolution_blockers: dict[str, str] = {}
+    for key, value in blockers_data.items():
+        text = normalize_optional_string(value)
+        if text is not None:
+            resolution_blockers[str(key)] = text
 
     return ReviewResult(
         initial_intent=normalize_enum(
@@ -442,6 +433,25 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
         issues=[str(item).strip() for item in issues if str(item).strip()],
         summary=summary,
         feedback_text=feedback_text,
+        user_never_responded=bool(get_review_value(data, "userNeverResponded", "user_never_responded", False)),
+        user_did_not_provide_required_info=bool(get_review_value(data, "userDidNotProvideRequiredInfo", "user_did_not_provide_required_info", False)),
+        user_asked_unrelated_questions=bool(get_review_value(data, "userAskedUnrelatedQuestions", "user_asked_unrelated_questions", False)),
+        user_ordering_mistake=bool(get_review_value(data, "userOrderingMistake", "user_ordering_mistake", False)),
+        user_did_not_follow_instructions=bool(get_review_value(data, "userDidNotFollowInstructions", "user_did_not_follow_instructions", False)),
+        assistant_hallucinating=bool(get_review_value(data, "assistantHallucinating", "assistant_hallucinating", False)),
+        assistant_wrong_product_suggestion=bool(get_review_value(data, "assistantWrongProductSuggestion", "assistant_wrong_product_suggestion", False)),
+        assistant_health_claim_without_disclaimer=bool(get_review_value(data, "assistantHealthClaimWithoutDisclaimer", "assistant_health_claim_without_disclaimer", False)),
+        assistant_failed_escalation=bool(get_review_value(data, "assistantFailedEscalation", "assistant_failed_escalation", False)),
+        assistant_no_recommendation_when_needed=bool(get_review_value(data, "assistantNoRecommendationWhenNeeded", "assistant_no_recommendation_when_needed", False)),
+        user_engaged=bool(get_review_value(data, "userEngaged", "user_engaged", False)),
+        recommendation_converted=bool(get_review_value(data, "recommendationConverted", "recommendation_converted", False)),
+        problem_could_be_resolved=bool(get_review_value(data, "problemCouldBeResolved", "problem_could_be_resolved", False)),
+        quality_dimensions=quality_dimensions,
+        escalation_needed=parse_optional_bool(escalation_data.get("needed")),
+        escalation_triggered=parse_optional_bool(escalation_data.get("triggered")),
+        escalation_resolved=parse_optional_bool(escalation_data.get("resolved")),
+        time_to_escalation_seconds=parse_optional_int(escalation_data.get("timeToEscalationSeconds")),
+        resolution_blockers=resolution_blockers,
     )
 
 
@@ -458,7 +468,6 @@ def finalize_review_result(
     feature_record: ConversationFeatureRecord,
     review: ReviewResult,
 ) -> ReviewResult:
-    first_user_text = feature_record.structure.first_user_text or ""
     full_user_text = " ".join(
         message.cleanText
         for message in grouped_record.messages
@@ -472,7 +481,7 @@ def finalize_review_result(
     combined_text = f"{full_user_text} {full_agent_text}".strip()
 
     if review.initial_intent == "other":
-        review.initial_intent = infer_initial_intent(first_user_text, full_user_text, feature_record)
+        review.initial_intent = infer_initial_intent(full_user_text, feature_record)
 
     if review.language_style == "unknown" and full_user_text.strip():
         review.language_style = detect_language_style(full_user_text)
@@ -530,13 +539,90 @@ def finalize_review_result(
     elif review.language_style == "unknown":
         review.language_style = "other"
 
-    if review.initial_intent == "other" and first_user_text.strip().lower() in {"hi", "hello", "hey", "hii"}:
+    if review.initial_intent == "other" and full_user_text.strip().lower() in {"hi", "hello", "hey", "hii"}:
         review.initial_intent = "greeting"
 
     if not review.feedback_text:
         review.feedback_text = review.summary
 
+    if _quality_dimensions_are_default(review.quality_dimensions):
+        review.quality_dimensions = infer_quality_dimensions(review)
+
+    # Conservative escalation defaults for production visibility.
+    if review.escalation_needed is None and (review.unresolved or review.frustrated):
+        review.escalation_needed = True
+    if review.escalation_triggered is None:
+        review.escalation_triggered = bool(feature_record.conversationMeta.hasWhatsAppHandoff)
+    if review.escalation_resolved is None:
+        review.escalation_resolved = bool(review.success and review.escalation_triggered)
+    if review.escalation_needed is False and review.escalation_triggered:
+        review.escalation_needed = True
+
+    if not review.resolution_blockers and review.unresolved:
+        review.resolution_blockers = {
+            "rootCause": "unknown",
+            "assistantMitigation": "not_clear",
+        }
+
     return review
+
+
+def _quality_dimensions_are_default(dimensions: QualityDimensions) -> bool:
+    return (
+        dimensions.accuracy == 0
+        and dimensions.relevance == 0
+        and dimensions.clarity == 0
+        and dimensions.helpfulness == 0
+        and dimensions.tone == 0
+        and dimensions.efficiency == 0
+        and dimensions.escalation_handling == 0
+    )
+
+
+def infer_quality_dimensions(review: ReviewResult) -> QualityDimensions:
+    """Infer quality dimensions conservatively when legacy cache lacks explicit values."""
+    accuracy = 1
+    relevance = 1
+    clarity = 1
+    helpfulness = 1
+    tone = 1
+    efficiency = 1
+    escalation = 0
+
+    if review.assistant_hallucinating:
+        accuracy -= 2
+    if review.bad_recommendation or review.assistant_wrong_product_suggestion:
+        relevance -= 2
+    if review.assistant_short_answer or review.assistant_evasive_answer:
+        clarity -= 1
+        helpfulness -= 1
+    if review.frustrated:
+        tone -= 2
+    if review.assistant_repetition or review.drop_off:
+        efficiency -= 2
+    if review.unresolved:
+        helpfulness -= 2
+    if review.success:
+        helpfulness += 1
+        relevance += 1
+        efficiency += 1
+
+    if review.escalation_needed and not review.escalation_triggered:
+        escalation = -2
+    elif review.escalation_triggered and review.escalation_resolved:
+        escalation = 2
+    elif review.escalation_triggered:
+        escalation = 0
+
+    return QualityDimensions(
+        accuracy=max(-2, min(2, accuracy)),
+        relevance=max(-2, min(2, relevance)),
+        clarity=max(-2, min(2, clarity)),
+        helpfulness=max(-2, min(2, helpfulness)),
+        tone=max(-2, min(2, tone)),
+        efficiency=max(-2, min(2, efficiency)),
+        escalation_handling=max(-2, min(2, escalation)),
+    )
 
 
 def normalize_optional_string(value: Any) -> str | None:
@@ -551,12 +637,40 @@ def normalize_enum(value: Any, allowed: set[str], default: str) -> str:
     return normalized if normalized in allowed else default
 
 
+def clamp_dimension(value: Any) -> int:
+    parsed = parse_optional_int(value)
+    if parsed is None:
+        return 0
+    return max(-2, min(2, parsed))
+
+
+def parse_optional_bool(value: Any) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes"}:
+        return True
+    if text in {"false", "0", "no"}:
+        return False
+    return None
+
+
+def parse_optional_int(value: Any) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
 def infer_initial_intent(
-    first_user_text: str,
     full_user_text: str,
     feature_record: ConversationFeatureRecord,
 ) -> str:
-    lowered = (first_user_text or full_user_text).strip().lower()
+    lowered = full_user_text.strip().lower()
     if not lowered:
         return "other"
     if lowered in {"hi", "hello", "hey", "hii", "namaste"}:
@@ -683,61 +797,126 @@ def parse_retry_after_seconds(message: str) -> float | None:
 
 
 def apply_review_result(feature_record: ConversationFeatureRecord, review: ReviewResult) -> None:
-    feature_record.llmReview.completed = True
-    feature_record.llmReview.provider = "groq"
-    feature_record.llmReview.model = MODEL
-    feature_record.llmReview.initialIntent = review.initial_intent
-    feature_record.llmReview.languageStyle = review.language_style
-    feature_record.llmReview.hasSafetySensitiveContext = review.has_safety_sensitive_context
-    feature_record.llmReview.userRepetition = review.user_repetition
-    feature_record.llmReview.frustrated = review.frustrated
-    feature_record.llmReview.assistantRepetition = review.assistant_repetition
-    feature_record.llmReview.assistantShortAnswer = review.assistant_short_answer
-    feature_record.llmReview.assistantEvasiveAnswer = review.assistant_evasive_answer
-    feature_record.llmReview.containsOrderInstructions = review.contains_order_instructions
-    feature_record.llmReview.containsSafetyDisclaimer = review.contains_safety_disclaimer
-    feature_record.llmReview.containsPossibleClaimRisk = review.contains_possible_claim_risk
-    feature_record.llmReview.recommendationGiven = review.recommendation_given
-    feature_record.llmReview.recommendationRelevant = review.recommendation_relevant
-    feature_record.llmReview.badRecommendation = review.bad_recommendation
-    feature_record.llmReview.success = review.success
-    feature_record.llmReview.dropOff = review.drop_off
-    feature_record.llmReview.unresolved = review.unresolved
-    feature_record.llmReview.primaryProblem = review.primary_problem
-    feature_record.llmReview.conversationOutcome = review.conversation_outcome
-    feature_record.llmReview.issues = review.issues
-    feature_record.llmReview.summary = review.summary
-    feature_record.llmReview.feedbackText = review.feedback_text
+    llm = feature_record.llmReview
+    llm.completed = True
+    llm.provider = "groq"
+    llm.model = MODEL
+    llm.initialIntent = review.initial_intent
+    llm.languageStyle = review.language_style
+    llm.hasSafetySensitiveContext = review.has_safety_sensitive_context
+    llm.userRepetition = review.user_repetition
+    llm.frustrated = review.frustrated
+    llm.assistantRepetition = review.assistant_repetition
+    llm.assistantShortAnswer = review.assistant_short_answer
+    llm.assistantEvasiveAnswer = review.assistant_evasive_answer
+    llm.containsOrderInstructions = review.contains_order_instructions
+    llm.containsSafetyDisclaimer = review.contains_safety_disclaimer
+    llm.containsPossibleClaimRisk = review.contains_possible_claim_risk
+    llm.recommendationGiven = review.recommendation_given
+    llm.recommendationRelevant = review.recommendation_relevant
+    llm.badRecommendation = review.bad_recommendation
+    llm.success = review.success
+    llm.dropOff = review.drop_off
+    llm.unresolved = review.unresolved
+    llm.primaryProblem = review.primary_problem
+    llm.conversationOutcome = review.conversation_outcome
+    llm.issues = review.issues
+    llm.summary = review.summary
+    llm.feedbackText = review.feedback_text
+    llm.userNeverResponded = review.user_never_responded
+    llm.userDidNotProvideRequiredInfo = review.user_did_not_provide_required_info
+    llm.userAskedUnrelatedQuestions = review.user_asked_unrelated_questions
+    llm.userOrderingMistake = review.user_ordering_mistake
+    llm.userDidNotFollowInstructions = review.user_did_not_follow_instructions
+    llm.assistantHallucinating = review.assistant_hallucinating
+    llm.assistantWrongProductSuggestion = review.assistant_wrong_product_suggestion
+    llm.assistantHealthClaimWithoutDisclaimer = review.assistant_health_claim_without_disclaimer
+    llm.assistantFailedEscalation = review.assistant_failed_escalation
+    llm.assistantNoRecommendationWhenNeeded = review.assistant_no_recommendation_when_needed
+    llm.userEngaged = review.user_engaged
+    llm.recommendationConverted = review.recommendation_converted
+    llm.problemCouldBeResolved = review.problem_could_be_resolved
+
+    llm.qualityDimensions = review.quality_dimensions
+    llm.escalationNeeded = bool(review.escalation_needed)
+    llm.escalationTriggered = bool(review.escalation_triggered)
+    llm.escalationResolved = bool(review.escalation_resolved)
+    llm.timeToEscalationSeconds = review.time_to_escalation_seconds
+    llm.resolutionBlockers = review.resolution_blockers
 
     recalculate_score(feature_record)
 
 
 def recalculate_score(feature_record: ConversationFeatureRecord) -> None:
     score = 0
-    if feature_record.conversationMeta.linkClickCount > 0 and feature_record.llmReview.primaryProblem != "login_loop":
+    llm = feature_record.llmReview
+    meta = feature_record.conversationMeta
+
+    if meta.linkClickCount > 0 and llm.primaryProblem != "login_loop":
         score += 2
-    if feature_record.conversationMeta.productClickCount > 0:
+    if meta.productClickCount > 0:
         score += 2
-    if (
-        feature_record.llmReview.recommendationGiven
-        and feature_record.llmReview.recommendationRelevant
-        and feature_record.conversationMeta.productViewCount > 0
-    ):
+    if llm.recommendationGiven and llm.recommendationRelevant and meta.productViewCount > 0:
         score += 2
-    if feature_record.llmReview.dropOff:
+
+    if llm.userEngaged:
+        score += 1
+    if llm.recommendationConverted:
+        score += 2
+
+    if llm.dropOff:
         score -= 1
-    if feature_record.conversationMeta.feedbackClickCount > 0:
+    if meta.feedbackClickCount > 0:
         score -= 2
-    if feature_record.llmReview.assistantRepetition:
+    if llm.assistantRepetition:
         score -= 1
-    if feature_record.llmReview.badRecommendation:
+    if llm.badRecommendation:
         score -= 1
-    if feature_record.llmReview.frustrated:
+    if llm.frustrated:
         score -= 2
-    if feature_record.llmReview.unresolved:
+    if llm.unresolved:
         score -= 2
-    if feature_record.llmReview.primaryProblem in {"login_loop", "order_friction", "unresolved_need"}:
+    if llm.primaryProblem in {"login_loop", "order_friction", "unresolved_need"}:
         score -= 1
+
+    if llm.assistantHallucinating:
+        score -= 3
+    if llm.assistantWrongProductSuggestion:
+        score -= 2
+    if llm.assistantHealthClaimWithoutDisclaimer:
+        score -= 3
+    if llm.assistantFailedEscalation:
+        score -= 2
+    if llm.assistantNoRecommendationWhenNeeded:
+        score -= 1
+    if llm.problemCouldBeResolved and llm.unresolved:
+        score -= 1
+
+    # Blend quality dimensions into score in a bounded way.
+    dims = llm.qualityDimensions
+    quality_delta = (
+        dims.accuracy
+        + dims.relevance
+        + dims.clarity
+        + dims.helpfulness
+        + dims.tone
+        + dims.efficiency
+        + dims.escalation_handling
+    )
+    score += max(-3, min(3, round(quality_delta / 4)))
+
+    user_penalty = 0
+    if llm.userNeverResponded:
+        user_penalty += 1
+    if llm.userDidNotProvideRequiredInfo:
+        user_penalty += 1
+    if llm.userAskedUnrelatedQuestions:
+        user_penalty += 1
+    if llm.userOrderingMistake:
+        user_penalty += 1
+    if llm.userDidNotFollowInstructions:
+        user_penalty += 1
+    score -= min(user_penalty, 2)
 
     feature_record.derivedMetrics.score = score
     if score >= 2:
