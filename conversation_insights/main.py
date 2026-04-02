@@ -18,7 +18,7 @@ from conversation_insights.insights import (
     build_global_summary,
     build_widget_insights,
 )
-from conversation_insights.llm_review import maybe_run_llm_reviews
+from conversation_insights.llm_review import run_llm_reviews
 from conversation_insights.mongo_store import write_processed_collections
 
 GENERATED_OUTPUT_FILENAMES = (
@@ -51,7 +51,7 @@ def main() -> None:
 
     grouped_records = build_grouped_conversations(args.conversations_file, args.messages_file)
     feature_records = extract_conversation_features(grouped_records)
-    feature_records = maybe_run_llm_reviews(
+    feature_records = run_llm_reviews(
         grouped_records=grouped_records,
         feature_records=feature_records,
         output_dir=args.output_dir,

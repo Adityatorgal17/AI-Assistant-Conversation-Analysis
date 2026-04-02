@@ -142,7 +142,6 @@ class DashboardConversationRow:
     numMessages: int
     numUserTurns: int
     numAgentTurns: int
-    whoEndedConversation: str
     quality: str
     score: int
     success: bool
@@ -198,6 +197,12 @@ class InsightRecommendation:
     interventionEffort: str | None = None
     interventionRisk: str | None = None
     hypothesis: str | None = None
+
+    # Provenance and evidence metadata for hybrid/second-pass insights.
+    source: str = "deterministic"
+    confidence: float | None = None
+    whyNew: str | None = None
+    evidenceMetrics: dict[str, float | int | str] = field(default_factory=dict)
 
 
 @dataclass(slots=True)

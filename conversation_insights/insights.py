@@ -5,8 +5,6 @@ from collections import Counter, defaultdict
 from conversation_insights.insights_generator import (
     count_assistant_mistakes,
     count_user_mistakes,
-    generate_global_insights,
-    generate_widget_insights,
 )
 from conversation_insights.llm_insights_generator import LLMInsightEnhancer
 from conversation_insights.models import (
@@ -31,7 +29,6 @@ def build_dashboard_rows(records: list[ConversationFeatureRecord]) -> list[Dashb
                 numMessages=record.structure.num_messages,
                 numUserTurns=record.structure.num_user_turns,
                 numAgentTurns=record.structure.num_agent_turns,
-                whoEndedConversation="unknown",
                 quality=record.derivedMetrics.quality,
                 score=record.derivedMetrics.score,
                 success=bool(llm.success),

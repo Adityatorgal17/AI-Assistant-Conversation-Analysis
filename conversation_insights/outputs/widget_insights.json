@@ -61,13 +61,13 @@
         "description": "43 conversations include risk-sensitive claims without disclaimers.",
         "rootCauses": [
           "Inconsistent application of safety protocols due to inadequate agent training",
-          "Insufficient contextual understanding leading to missed opportunities for risk-sensitive intent identification",
+          "Insufficient contextual understanding leading to missed opportunities for safety framing",
           "Lack of real-time compliance monitoring and feedback mechanisms"
         ],
         "suggestedActions": [
-          "Develop and implement a comprehensive compliance training program for agents with regular refreshers and assessments",
-          "Integrate AI-powered intent detection tools to enhance early identification of risk-sensitive contexts and trigger targeted safety framing",
-          "Establish a real-time conversation review process with automated compliance checks and human evaluation to ensure consistent safety protocol application"
+          "Develop and implement a comprehensive compliance training program for agents",
+          "Integrate AI-powered contextual analysis tools to identify and flag high-risk conversations",
+          "Establish a real-time feedback loop to monitor and address compliance gaps in agent responses"
         ],
         "affectedCategories": [
           "risk_and_compliance"
@@ -76,7 +76,11 @@
         "metricTarget": 0.28,
         "interventionEffort": "low",
         "interventionRisk": "medium",
-        "hypothesis": "Automated safety framing will materially reduce compliance exposure."
+        "hypothesis": "Automated safety framing will materially reduce compliance exposure.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
       },
       {
         "title": "Low Recommendation Follow-Through",
@@ -85,14 +89,14 @@
         "percentage": 95.3125,
         "description": "Recommendation conversion is 4.7% for this widget.",
         "rootCauses": [
-          "Insufficient contextual understanding leading to mismatched recommendations",
-          "Lack of transparency in the recommendation algorithm eroding user trust",
+          "Lack of contextual understanding leading to mismatched recommendations",
+          "Insufficient transparency in the recommendation process eroding user trust",
           "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
         ],
         "suggestedActions": [
-          "Implement intent-based recommendation filtering with explicit user feedback loops",
-          "Develop and display confidence scores or explanation summaries for each recommended item",
-          "Conduct A/B testing on prominent call-to-action placements and formats to optimize user engagement"
+          "Implement intent-based recommendation filtering with contextual cues",
+          "Develop and display trust badges or ratings for recommended products",
+          "Conduct A/B testing on recommendation presentation formats to optimize user engagement"
         ],
         "affectedCategories": [
           "product_discovery",
@@ -102,7 +106,42 @@
         "metricTarget": 0.146875,
         "interventionEffort": "medium",
         "interventionRisk": "low",
-        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion."
+        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
+      },
+      {
+        "title": "Inefficient User Information Gathering",
+        "severity": "medium",
+        "relatedCount": 15,
+        "percentage": 22.0,
+        "description": "Users frequently fail to provide required information, leading to unresolved issues and increased conversation length.",
+        "rootCauses": [
+          "did_not_provide_required_info",
+          "repeatedly_asked_to_track_order"
+        ],
+        "suggestedActions": [
+          "Implement clear information prompts",
+          "Streamline conversation flows"
+        ],
+        "affectedCategories": [
+          "userMistakes",
+          "qualityDimensionsAggregate"
+        ],
+        "metricBaseline": 0.22,
+        "metricTarget": 0.17,
+        "interventionEffort": "medium",
+        "interventionRisk": "low",
+        "hypothesis": null,
+        "source": "llm_discovery",
+        "confidence": 0.8,
+        "whyNew": "This issue is distinct from existing insights as it focuses on user information gathering, rather than compliance or recommendation follow-through.",
+        "evidenceMetrics": {
+          "did_not_provide_required_info": 15,
+          "repetition_rate": 0.22
+        }
       }
     ],
     "assistantMistakes": {
@@ -194,14 +233,14 @@
         "percentage": 19.0,
         "description": "19.0% conversations dropped off, above this widget's dynamic risk threshold.",
         "rootCauses": [
-          "Insufficient personalized support in initial interactions, leading to user disengagement",
-          "Lack of clear and concise guidance from the assistant, causing confusion and drop-off",
-          "Inadequate understanding of user needs and preferences, resulting in unhelpful responses"
+          "Lack of personalized support in initial interactions, leading to user disengagement",
+          "Inadequate understanding of user needs due to unclear or generic assistant responses",
+          "Insufficient guidance or follow-up actions provided to users, resulting in unmet expectations"
         ],
         "suggestedActions": [
-          "Implement intent-specific response templates with personalized elements, such as user names and context-dependent suggestions",
-          "Conduct A/B testing of concise versus detailed first responses, with a focus on improving clarity and relevance",
-          "Develop and integrate user feedback mechanisms to gauge satisfaction and identify areas for improvement in real-time"
+          "Implement intent-specific response templates with personalized elements, such as user names or context-dependent suggestions",
+          "Conduct A/B testing of concise versus detailed first responses, with a focus on measuring user engagement and drop-off rates",
+          "Develop and integrate intent-specific quick actions and follow-up questions to enhance user experience and provide timely support"
         ],
         "affectedCategories": [
           "all"
@@ -210,7 +249,11 @@
         "metricTarget": 0.11,
         "interventionEffort": "medium",
         "interventionRisk": "low",
-        "hypothesis": "Reducing first-turn friction will improve continuation and lower drop-off."
+        "hypothesis": "Reducing first-turn friction will improve continuation and lower drop-off.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
       },
       {
         "title": "Low Recommendation Follow-Through",
@@ -224,9 +267,9 @@
           "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
         ],
         "suggestedActions": [
-          "Implement intent-based recommendation filtering with contextual cues",
-          "Introduce explainable AI features to provide insight into recommendation decisions",
-          "Conduct A/B testing on recommendation presentation formats to optimize user engagement"
+          "Implement intent-based recommendation filtering with contextual awareness",
+          "Introduce explainable AI features to provide users with insight into recommendation decisions",
+          "Conduct A/B testing on recommendation presentation formats to optimize visibility and engagement"
         ],
         "affectedCategories": [
           "product_discovery",
@@ -236,7 +279,11 @@
         "metricTarget": 0.13896103896103895,
         "interventionEffort": "medium",
         "interventionRisk": "low",
-        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion."
+        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
       }
     ],
     "assistantMistakes": {
@@ -335,13 +382,13 @@
         "description": "22 conversations include risk-sensitive claims without disclaimers.",
         "rootCauses": [
           "Inconsistent application of safety protocols due to inadequate agent training",
-          "Insufficient contextual understanding leading to missed opportunities for risk-sensitive intent identification",
-          "Inadequate review processes allowing non-compliant responses to reach customers"
+          "Insufficient risk assessment frameworks to identify and flag high-risk conversations",
+          "Lack of real-time compliance monitoring and feedback mechanisms"
         ],
         "suggestedActions": [
-          "Develop and implement a comprehensive agent training program focusing on safety protocols and risk-sensitive intent identification",
-          "Integrate AI-powered contextual analysis tools to enhance intent identification and automate pre-response compliance checks",
-          "Establish a multi-tiered review process with clear escalation pathways for high-risk conversations to ensure timely intervention and compliance"
+          "Develop and implement a comprehensive compliance training program for agents",
+          "Integrate AI-powered risk detection tools to enhance conversation monitoring and flagging",
+          "Establish a post-conversation review process to identify and address compliance gaps"
         ],
         "affectedCategories": [
           "risk_and_compliance"
@@ -350,7 +397,11 @@
         "metricTarget": 0.07,
         "interventionEffort": "low",
         "interventionRisk": "medium",
-        "hypothesis": "Automated safety framing will materially reduce compliance exposure."
+        "hypothesis": "Automated safety framing will materially reduce compliance exposure.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
       },
       {
         "title": "Low Recommendation Follow-Through",
@@ -359,14 +410,14 @@
         "percentage": 88.23529411764706,
         "description": "Recommendation conversion is 11.8% for this widget.",
         "rootCauses": [
-          "Lack of contextual understanding leading to mismatched recommendations",
-          "Insufficient transparency into the recommendation algorithm, eroding user trust",
+          "Insufficient contextual understanding leading to mismatched recommendations",
+          "Lack of transparency in the recommendation algorithm, eroding user trust",
           "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
         ],
         "suggestedActions": [
           "Implement intent-based recommendation filtering with contextual cues",
-          "Develop and display clear, concise explanations for each recommended item, including why it was suggested",
-          "Conduct A/B testing on recommendation presentation formats, including prominence and explanatory text, to optimize user engagement and confidence"
+          "Develop and display clear, concise explanations for each recommended item",
+          "Conduct A/B testing on recommendation layouts and call-to-action prominence"
         ],
         "affectedCategories": [
           "product_discovery",
@@ -376,7 +427,71 @@
         "metricTarget": 0.21764705882352942,
         "interventionEffort": "medium",
         "interventionRisk": "low",
-        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion."
+        "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
+      },
+      {
+        "title": "Inefficient User Engagement",
+        "severity": "medium",
+        "relatedCount": 20,
+        "percentage": 20.0,
+        "description": "Users are experiencing inefficient engagement due to high repetition rate and low efficiency score",
+        "rootCauses": [
+          "High repetition rate",
+          "Low efficiency score"
+        ],
+        "suggestedActions": [
+          "Improve conversation flow",
+          "Optimize assistant responses"
+        ],
+        "affectedCategories": [
+          "User Experience"
+        ],
+        "metricBaseline": 0.2,
+        "metricTarget": 0.15,
+        "interventionEffort": "medium",
+        "interventionRisk": "low",
+        "hypothesis": null,
+        "source": "llm_discovery",
+        "confidence": 0.8,
+        "whyNew": "This issue is new because it highlights the impact of repetition rate and efficiency score on user engagement, which is not covered by existing insights",
+        "evidenceMetrics": {
+          "repetition_rate": 0.2,
+          "efficiency": 0.71
+        }
+      },
+      {
+        "title": "Unaddressed User Needs",
+        "severity": "high",
+        "relatedCount": 24,
+        "percentage": 67.0,
+        "description": "A significant number of users have unaddressed needs, leading to a high unresolved rate",
+        "rootCauses": [
+          "Unresolved user needs",
+          "Inadequate support"
+        ],
+        "suggestedActions": [
+          "Improve support quality",
+          "Enhance issue resolution"
+        ],
+        "affectedCategories": [
+          "Support Quality"
+        ],
+        "metricBaseline": 0.67,
+        "metricTarget": 0.62,
+        "interventionEffort": "medium",
+        "interventionRisk": "medium",
+        "hypothesis": null,
+        "source": "llm_discovery",
+        "confidence": 0.9,
+        "whyNew": "This issue is new because it emphasizes the importance of addressing user needs, which is not explicitly mentioned in existing insights",
+        "evidenceMetrics": {
+          "unresolved_rate": 0.67,
+          "unresolved_need": 24
+        }
       }
     ],
     "assistantMistakes": {

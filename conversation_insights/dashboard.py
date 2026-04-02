@@ -25,9 +25,44 @@ st.set_page_config(
 )
 
 
+GLOSSARY_TERMS: dict[str, str] = {
+    "Escalation": "Hand-off or need for human/support intervention when the bot cannot resolve effectively.",
+    "Unresolved": "Conversation ended without solving the user's core need.",
+    "Resolved": "Conversation ended with the user's need solved.",
+    "Drop Off": "User stopped engaging before the issue was resolved.",
+    "Frustrated": "Conversation showed frustration or dissatisfaction signals.",
+    "Recommendation Flows": "Conversations where product recommendations were given.",
+    "Recommendation Given": "The assistant offered a product or next-step recommendation.",
+    "Recommendation Relevant": "The recommendation matched the user’s need.",
+    "Recommendation Converted": "The user acted on the recommendation.",
+    "Bad Recommendation": "The assistant suggested something mismatched, misleading, or unhelpful.",
+    "Escalation Needed": "Cases where human intervention should have happened.",
+    "Escalation Triggered": "Cases where escalation was actually triggered.",
+    "Success": "The conversation achieved the intended outcome.",
+    "product_page_question": "User asks about product details, ingredients, usage, benefits, or suitability.",
+    "order_support": "User needs help with order status, edits, cancellation, refund, delivery, or tracking.",
+    "product_discovery": "User asks for suggestions or best-product guidance for a need.",
+    "other": "Intent did not confidently match known categories.",
+    "greeting": "Greeting or small-talk opener with no specific task yet.",
+    "risk_flagged": "Potential compliance/safety risk detected in the conversation.",
+    "containsPossibleClaimRisk": "The conversation included wording that may be interpreted as a claim or compliance risk.",
+    "containsSafetyDisclaimer": "A safety or compliance disclaimer was present.",
+    "order_friction": "Order-related journey had blockers, repeated steps, or missing guidance.",
+    "login_loop": "Conversation got stuck in repeated login/sign-in prompts without progress.",
+    "productClick": "A product click was observed in the conversation metadata.",
+    "productView": "A product view was observed in the conversation metadata.",
+    "linkClick": "A link click was observed in the conversation metadata.",
+    "feedbackClick": "A feedback/action button was clicked in the conversation metadata.",
+    "assistantRepetition": "The assistant repeated itself or got stuck in a loop.",
+    "qualityDimensions": "Per-conversation quality scores across accuracy, relevance, clarity, helpfulness, tone, efficiency, and escalation handling.",
+}
+
+
 def main() -> None:
     st.title("Conversation Insights Dashboard")
     st.caption("Global summary and widget-level deep dive from processed conversation records.")
+
+    render_glossary_sidebar()
 
     source = st.sidebar.radio("Data source", ["JSON outputs", "MongoDB"], index=0)
     if source == "JSON outputs":
@@ -75,6 +110,12 @@ def main() -> None:
     )
 
 
+def render_glossary_sidebar() -> None:
+    with st.sidebar.expander("Dashboard Glossary", expanded=False):
+        for term, definition in GLOSSARY_TERMS.items():
+            st.markdown(f"**{term}**: {definition}")
+
+
 def build_widget_options(dashboard_rows: list[dict[str, Any]]) -> list[dict[str, str]]:
     seen = set()
     options = []
@@ -111,7 +152,13 @@ def render_global_overview(global_summary: dict[str, Any], all_rows: list[dict[s
     col6.metric("Escalation Triggered", escalation_triggered)
 
     if global_summary:
-        st.json(global_summary)
+        recommendations = global_summary.get("recommendations", [])
+        if recommendations:
+            st.markdown("**Global Recommendations**")
+            render_recommendations(recommendations, key_prefix="global")
+
+        with st.expander("Global Summary JSON", expanded=False):
+            st.json(global_summary)
     else:
         st.info("Global summary is not available.")
 
@@ -159,39 +206,7 @@ def render_widget_insights(widget_insights: list[dict[str, Any]], selected_widge
             if not recommendations:
                 st.info("No recommendations available for this widget.")
             else:
-                for idx, rec in enumerate(recommendations, start=1):
-                    with st.expander(f"{idx}. {rec.get('title', 'Untitled Recommendation')}", expanded=(idx == 1)):
-                        meta_col1, meta_col2, meta_col3 = st.columns(3)
-                        meta_col1.metric("Severity", str(rec.get("severity", "unknown")).upper())
-                        meta_col2.metric("Related Count", rec.get("relatedCount", 0))
-                        percentage_value = rec.get("percentage")
-                        if isinstance(percentage_value, (int, float)):
-                            meta_col3.metric("Affected", f"{percentage_value:.1f}%")
-                        else:
-                            meta_col3.metric("Affected", "N/A")
-
-                        description = rec.get("description")
-                        if description:
-                            st.write(description)
-
-                        causes_col, actions_col = st.columns(2)
-                        with causes_col:
-                            st.markdown("**Root Causes**")
-                            causes = rec.get("rootCauses", [])
-                            if causes:
-                                for cause in causes:
-                                    st.write(f"- {cause}")
-                            else:
-                                st.write("- Not available")
-
-                        with actions_col:
-                            st.markdown("**Suggested Actions**")
-                            actions = rec.get("suggestedActions", [])
-                            if actions:
-                                for action in actions:
-                                    st.write(f"- {action}")
-                            else:
-                                st.write("- Not available")
+                render_recommendations(recommendations, key_prefix=insight["widgetId"])
 
             with st.expander("Mistake Counters", expanded=False):
                 left, right = st.columns(2)
@@ -237,6 +252,59 @@ def render_conversation_table(filtered_rows: list[dict[str, Any]], widget_lookup
         )
 
     st.dataframe(table_rows, use_container_width=True, hide_index=True)
+
+
+def render_recommendations(recommendations: list[dict[str, Any]], key_prefix: str) -> None:
+    for idx, rec in enumerate(recommendations, start=1):
+        title = rec.get("title", "Untitled Recommendation")
+        with st.expander(f"{idx}. {title}", expanded=(idx == 1)):
+            meta_col1, meta_col2, meta_col3, meta_col4 = st.columns(4)
+            meta_col1.metric("Severity", str(rec.get("severity", "unknown")).upper())
+            meta_col2.metric("Related Count", rec.get("relatedCount", 0))
+            percentage_value = rec.get("percentage")
+            if isinstance(percentage_value, (int, float)):
+                meta_col3.metric("Affected", f"{percentage_value:.1f}%")
+            else:
+                meta_col3.metric("Affected", "N/A")
+
+            source = str(rec.get("source", "deterministic"))
+            meta_col4.metric("Source", source)
+
+            confidence = rec.get("confidence")
+            if isinstance(confidence, (int, float)):
+                st.caption(f"Confidence: {confidence:.2f}")
+
+            why_new = rec.get("whyNew")
+            if why_new:
+                st.markdown(f"**Why New**: {why_new}")
+
+            description = rec.get("description")
+            if description:
+                st.write(description)
+
+            causes_col, actions_col = st.columns(2)
+            with causes_col:
+                st.markdown("**Root Causes**")
+                causes = rec.get("rootCauses", [])
+                if causes:
+                    for cause in causes:
+                        st.write(f"- {cause}")
+                else:
+                    st.write("- Not available")
+
+            with actions_col:
+                st.markdown("**Suggested Actions**")
+                actions = rec.get("suggestedActions", [])
+                if actions:
+                    for action in actions:
+                        st.write(f"- {action}")
+                else:
+                    st.write("- Not available")
+
+            evidence = rec.get("evidenceMetrics", {})
+            if isinstance(evidence, dict) and evidence:
+                with st.expander("Evidence Metrics", expanded=False):
+                    st.json(evidence)
 
 
 def render_conversation_detail(

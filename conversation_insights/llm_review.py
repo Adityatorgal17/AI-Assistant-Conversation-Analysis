@@ -195,7 +195,7 @@ class GroqReviewer:
         self.cache_path.write_text(json.dumps(self.cache, indent=2, ensure_ascii=True), encoding="utf-8")
 
 
-def maybe_run_llm_reviews(
+def run_llm_reviews(
     grouped_records: list[GroupedConversationRecord],
     feature_records: list[ConversationFeatureRecord],
     output_dir: Path,

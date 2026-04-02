@@ -1,6 +1,6 @@
 # Conversation Insights Pipeline
 
-Lightweight ELT + LLM pipeline for analyzing ecommerce assistant conversations and publishing useful insights.
+ELT + LLM pipeline for analyzing ecommerce assistant conversations and producing useful insights and displaying on dashboard.
 
 ## What This Project Does
 
@@ -18,25 +18,18 @@ Output:
 - `conversation_insights/outputs/global_summary.json`
 - `conversation_insights/outputs/llm_review_cache.json`
 
-## ELT Overview
+## Pipeline Flow
 
-This project follows an **ELT-style flow**:
+`input (conversations, messages)` -> `grouped conversations` -> `deterministic features` -> `LLM extracted features` -> `deterministic insights` -> `LLM generated insights` -> `output files`
 
-1. **Extract**
+This is implemented as:
 
-- Load raw conversations and messages from JSON files.
-
-2. **Load**
-
-- Rebuild and materialize grouped conversation records (sorted transcripts with metadata).
-
-3. **Transform**
-
-- Deterministic feature extraction (structure, clicks, recommendation signals).
-- LLM review for semantic labels (intent, outcome, risks, unresolved, etc.).
-- Insight generation:
-  - Base deterministic insights.
-  - LLM enrichment for deeper root causes and actions.
+1. Build grouped conversations from raw JSON.
+2. Extract deterministic conversation features.
+3. Run mandatory LLM review (`run_llm_reviews`) to enrich semantic labels.
+4. Build deterministic base insights.
+5. Enhance insights with LLM root causes/actions and guarded discovery.
+6. Write final JSON outputs for dashboard/analysis.
 
 ## Pipeline Stages
 
@@ -50,7 +43,7 @@ This project follows an **ELT-style flow**:
 
 3. `llm_review.py`
 
-- Review each conversation with Groq and cache results.
+- Run `run_llm_reviews` for conversation-level LLM review + cache.
 
 4. `insights_generator.py`
 
@@ -58,7 +51,7 @@ This project follows an **ELT-style flow**:
 
 5. `llm_insights_generator.py`
 
-- Enrich recommendations with LLM-generated root causes/actions.
+- Enrich deterministic recommendations with LLM-generated root causes/actions and discovery guardrails.
 
 6. `insights.py`
 
@@ -136,7 +129,7 @@ In dashboard:
 - `conversation_insights/main.py` - pipeline orchestrator
 - `conversation_insights/etl.py` - extract/load grouped transcripts
 - `conversation_insights/features.py` - deterministic transforms
-- `conversation_insights/llm_review.py` - conversation-level LLM review + cache
+- `conversation_insights/llm_review.py` - conversation-level LLM review + cache (`run_llm_reviews`)
 - `conversation_insights/insights_generator.py` - base recommendations
 - `conversation_insights/llm_insights_generator.py` - LLM enhancement of recommendations
 - `conversation_insights/insights.py` - final summary builders
