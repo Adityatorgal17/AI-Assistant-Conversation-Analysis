@@ -321,6 +321,14 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         "- recommendationGiven=true only for product suggestions, not login/help links.\n"
         "- If unresolved with repeated login redirection, set primaryProblem=login_loop.\n"
         "- If unresolved order help without login loop, set primaryProblem=order_friction.\n"
+        "- If success=false and unresolved=false, include an explicit issue tag: compliance_violation, safety_risk, or policy_violation. If no explicit reason exists, prefer success=true.\n"
+        "- If conversationOutcome=resolved and unresolved=false, default success=true unless compliance_violation/safety_risk/policy_violation is present.\n"
+        "- If recommendationConverted=true, set success=true and unresolved=false unless compliance_violation/safety_risk/policy_violation is present.\n"
+        "- If assistantHealthClaimWithoutDisclaimer=true, set success=false and include issue health_claim_without_disclaimer.\n"
+        "- If the assistant asks the user to consult a doctor or shares doctor contact details (WhatsApp/call/email), do not mark containsPossibleClaimRisk=true for that handoff alone.\n"
+        "- In those doctor-handoff cases, avoid primaryProblem=risk_flagged unless there is separate explicit unsafe medical advice or unverifiable cure/efficacy claims.\n"
+        "- If transcript includes WhatsApp/doctor handoff instruction or handoff link click, set escalation.triggered=true.\n"
+        "- If dropOff=true but response was relevant/helpful and user got actionable next step, do not force unresolved=true.\n"
         "- escalation.needed=true when unresolved/frustrated loops suggest human intervention.\n"
         "- Set escalationHandling low when escalation was needed but not triggered.\n"
         "</rules>\n\n"
@@ -479,6 +487,8 @@ def finalize_review_result(
         if message.sender == "agent" and message.messageType == "text" and message.cleanText
     )
     combined_text = f"{full_user_text} {full_agent_text}".strip()
+    handoff_detected = has_doctor_or_whatsapp_handoff(grouped_record)
+    actionable_next_step = has_actionable_next_step(full_agent_text)
 
     if review.initial_intent == "other":
         review.initial_intent = infer_initial_intent(full_user_text, feature_record)
@@ -502,6 +512,29 @@ def finalize_review_result(
 
     if not review.has_safety_sensitive_context:
         review.has_safety_sensitive_context = infer_safety_sensitive_context(full_user_text)
+
+    # Relax claim-risk classification when the assistant safely hands off to doctor support.
+    if (
+        review.contains_possible_claim_risk
+        and handoff_detected
+        and not has_explicit_unsafe_medical_claim(full_agent_text)
+    ):
+        review.contains_possible_claim_risk = False
+        if review.primary_problem == "risk_flagged":
+            review.primary_problem = None
+        review.issues = [
+            issue
+            for issue in review.issues
+            if issue not in {"health_claim_without_disclaimer", "compliance_violation", "safety_risk"}
+        ]
+
+    # Strict compliance override.
+    if review.assistant_health_claim_without_disclaimer:
+        review.success = False
+        if "health_claim_without_disclaimer" not in review.issues:
+            review.issues.append("health_claim_without_disclaimer")
+        if "compliance_violation" not in review.issues:
+            review.issues.append("compliance_violation")
 
     if review.success:
         review.unresolved = False
@@ -553,10 +586,32 @@ def finalize_review_result(
         review.escalation_needed = True
     if review.escalation_triggered is None:
         review.escalation_triggered = bool(feature_record.conversationMeta.hasWhatsAppHandoff)
+    if handoff_detected:
+        review.escalation_triggered = True
     if review.escalation_resolved is None:
         review.escalation_resolved = bool(review.success and review.escalation_triggered)
     if review.escalation_needed is False and review.escalation_triggered:
         review.escalation_needed = True
+
+    # Drop-off decoupling: good actionable assistance with user drop-off is not always unresolved.
+    if review.drop_off and review.recommendation_relevant and actionable_next_step and not is_explicit_failure_state(review):
+        review.unresolved = False
+
+    # Success/unresolved and outcome consistency rules.
+    if review.recommendation_converted and not is_explicit_failure_state(review):
+        review.success = True
+        review.unresolved = False
+
+    if review.conversation_outcome == "resolved" and not review.unresolved and not is_explicit_failure_state(review):
+        review.success = True
+
+    if not review.success and not review.unresolved and not has_explicit_failure_reason(review):
+        review.success = True
+
+    if review.success:
+        review.unresolved = False
+        if review.conversation_outcome in {"neutral", "unresolved", "drop_off", "frustrated"}:
+            review.conversation_outcome = "resolved"
 
     if not review.resolution_blockers and review.unresolved:
         review.resolution_blockers = {
@@ -732,7 +787,7 @@ def infer_primary_problem(review: ReviewResult, feature_record: ConversationFeat
         return "login_loop"
     if review.bad_recommendation:
         return "bad_recommendation"
-    if review.contains_possible_claim_risk:
+    if review.contains_possible_claim_risk and has_strong_claim_risk_evidence(review):
         return "risk_flagged"
     if review.unresolved and review.contains_order_instructions:
         return "order_friction"
@@ -759,6 +814,71 @@ def infer_conversation_outcome(review: ReviewResult) -> str:
     if review.unresolved:
         return "unresolved"
     return "neutral"
+
+
+def has_doctor_or_whatsapp_handoff(grouped_record: GroupedConversationRecord) -> bool:
+    for message in grouped_record.messages:
+        text = (message.cleanText or message.rawText or "").lower()
+        if "whatsapp" in text or "wa.me" in text or "api.whatsapp.com" in text:
+            return True
+        if message.sender == "agent" and (
+            "consult" in text and "doctor" in text
+            or "contact our doctor" in text
+            or "contact doctor" in text
+        ):
+            return True
+    return False
+
+
+def has_explicit_unsafe_medical_claim(agent_text: str) -> bool:
+    lowered = agent_text.lower()
+    unsafe_claim_hints = (
+        "guaranteed cure",
+        "cure",
+        "treats",
+        "reverses",
+        "will fix",
+        "clinically proven",
+        "100%",
+    )
+    return any(hint in lowered for hint in unsafe_claim_hints)
+
+
+def has_actionable_next_step(agent_text: str) -> bool:
+    lowered = agent_text.lower()
+    actionable_hints = (
+        "click",
+        "link",
+        "whatsapp",
+        "contact",
+        "call",
+        "order number",
+        "track order",
+        "checkout",
+        "add to cart",
+    )
+    return any(hint in lowered for hint in actionable_hints)
+
+
+def has_explicit_failure_reason(review: ReviewResult) -> bool:
+    explicit_tags = {"compliance_violation", "safety_risk", "policy_violation"}
+    return any(issue in explicit_tags for issue in review.issues)
+
+
+def is_explicit_failure_state(review: ReviewResult) -> bool:
+    if has_explicit_failure_reason(review):
+        return True
+    if review.assistant_health_claim_without_disclaimer:
+        return True
+    return False
+
+
+def has_strong_claim_risk_evidence(review: ReviewResult) -> bool:
+    if review.assistant_health_claim_without_disclaimer:
+        return True
+    if "health_claim_without_disclaimer" in review.issues:
+        return True
+    return review.has_safety_sensitive_context
 
 
 def try_parse_json(content: str) -> dict[str, Any] | None:
