@@ -1,31 +1,31 @@
 {
   "totalConversations": 300,
   "qualityBreakdown": {
-    "bad": 52,
-    "neutral": 57,
-    "good": 191
+    "bad": 65,
+    "good": 170,
+    "neutral": 65
   },
   "outcomeBreakdown": {
-    "unresolved": 44,
-    "resolved": 255,
-    "drop_off": 1
+    "unresolved": 57,
+    "resolved": 240,
+    "drop_off": 3
   },
   "topIntents": [
     {
       "intent": "product_page_question",
-      "count": 150
+      "count": 153
     },
     {
       "intent": "order_support",
-      "count": 77
+      "count": 65
     },
     {
       "intent": "product_discovery",
-      "count": 55
+      "count": 63
     },
     {
       "intent": "other",
-      "count": 10
+      "count": 11
     },
     {
       "intent": "greeting",
@@ -35,33 +35,37 @@
   "topProblems": [
     {
       "problem": "risk_flagged",
-      "count": 74
+      "count": 82
     },
     {
       "problem": "order_friction",
-      "count": 24
+      "count": 32
     },
     {
       "problem": "unresolved_need",
-      "count": 17
+      "count": 19
     },
     {
       "problem": "login_loop",
       "count": 5
+    },
+    {
+      "problem": "bad_recommendation",
+      "count": 4
     }
   ],
   "summaryPoints": [
-    "52 conversations are currently scored as bad quality.",
+    "65 conversations are currently scored as bad quality.",
     "The most common intent is product_page_question.",
-    "44 conversations are flagged as unresolved."
+    "57 conversations are flagged as unresolved."
   ],
   "recommendations": [
     {
       "title": "Global Compliance Gap",
       "severity": "critical",
-      "relatedCount": 74,
-      "percentage": 24.666666666666668,
-      "description": "74 conversations include risk-sensitive claims without disclaimer coverage.",
+      "relatedCount": 83,
+      "percentage": 27.666666666666668,
+      "description": "83 conversations include risk-sensitive claims without disclaimer coverage.",
       "rootCauses": [
         "Compliance checks are inconsistently applied",
         "Risk-sensitive wording is not always detected",
@@ -70,13 +74,13 @@
       "suggestedActions": [
         "Implement AI-powered compliance monitoring to detect and prevent non-compliant responses",
         "Develop a centralized knowledge base with standardized compliance guidelines and training for customer service representatives",
-        "Conduct regular audits and feedback sessions to identify areas of improvement and recognize best practices"
+        "Conduct regular audits and feedback sessions to ensure adherence to compliance protocols and identify areas for improvement"
       ],
       "affectedCategories": [
         "risk_and_compliance"
       ],
-      "metricBaseline": 0.24666666666666667,
-      "metricTarget": 0.12666666666666668,
+      "metricBaseline": 0.27666666666666667,
+      "metricTarget": 0.15666666666666668,
       "interventionEffort": "low",
       "interventionRisk": "medium",
       "hypothesis": "Centralized compliance checks should reduce safety-risk output incidence.",
@@ -90,47 +94,47 @@
     "brandComparison": {
       "680a0a8b70a26f7a0e24eedd": {
         "brandName": "Bluetea",
-        "badPercentage": 24.0,
+        "badPercentage": 26.0,
         "totalConversations": 100
       },
       "6983153e1497a62e8542a0ad": {
         "brandName": "Bluenectar",
-        "badPercentage": 10.0,
+        "badPercentage": 16.0,
         "totalConversations": 100
       },
       "69a92ad76dcbf2da868e0f9b": {
         "brandName": "Srisritattva",
-        "badPercentage": 18.0,
+        "badPercentage": 23.0,
         "totalConversations": 100
       }
     },
     "totalConversations": 300,
-    "globalBadQualityPercentage": 17.333333333333336
+    "globalBadQualityPercentage": 21.666666666666668
   },
   "assistantMistakesGlobal": {
     "hallucinating": 0,
-    "wrong_product_suggestion": 0,
-    "health_claim_without_disclaimer": 83,
+    "wrong_product_suggestion": 5,
+    "health_claim_without_disclaimer": 99,
     "failed_escalation": 0,
     "no_recommendation_when_needed": 0,
-    "repetition": 44,
+    "repetition": 47,
     "short_answer": 0,
-    "evasive_answer": 2
+    "evasive_answer": 1
   },
   "userMistakesGlobal": {
-    "never_responded": 12,
-    "did_not_provide_required_info": 16,
+    "never_responded": 24,
+    "did_not_provide_required_info": 19,
     "asked_unrelated_questions": 3,
     "ordering_mistake": 1,
     "did_not_follow_instructions": 0
   },
   "qualityDimensionsGlobal": {
-    "accuracy": 1.48,
-    "relevance": 1.7666666666666666,
-    "clarity": 1.7133333333333334,
-    "helpfulness": 1.62,
-    "tone": 1.43,
-    "efficiency": 1.28,
-    "escalation_handling": 0.43333333333333335
+    "accuracy": 1.33,
+    "relevance": 1.54,
+    "clarity": 1.5266666666666666,
+    "helpfulness": 1.3333333333333333,
+    "tone": 1.2766666666666666,
+    "efficiency": 1.0333333333333334,
+    "escalation_handling": 0.6366666666666667
   }
 }

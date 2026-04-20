@@ -4,30 +4,30 @@
     "brandName": "Bluetea",
     "totalConversations": 100,
     "qualityBreakdown": {
-      "bad": 24,
-      "neutral": 16,
-      "good": 60
+      "bad": 26,
+      "good": 57,
+      "neutral": 17
     },
     "outcomeBreakdown": {
-      "unresolved": 20,
-      "resolved": 80
+      "unresolved": 24,
+      "resolved": 76
     },
     "topIntents": [
       {
         "intent": "product_discovery",
-        "count": 39
+        "count": 41
       },
       {
         "intent": "order_support",
-        "count": 37
+        "count": 35
       },
       {
         "intent": "product_page_question",
-        "count": 21
+        "count": 20
       },
       {
         "intent": "other",
-        "count": 2
+        "count": 3
       },
       {
         "intent": "greeting",
@@ -37,46 +37,50 @@
     "topProblems": [
       {
         "problem": "risk_flagged",
-        "count": 38
+        "count": 37
       },
       {
         "problem": "order_friction",
-        "count": 12
+        "count": 18
       },
       {
         "problem": "unresolved_need",
-        "count": 8
+        "count": 4
+      },
+      {
+        "problem": "bad_recommendation",
+        "count": 3
       }
     ],
     "summaryPoints": [
-      "24 of 100 conversations are scored as bad quality.",
-      "Top intent is product_discovery with 39 conversations.",
-      "20 conversations are flagged as unresolved.",
-      "12 conversations show order-flow friction.",
+      "26 of 100 conversations are scored as bad quality.",
+      "Top intent is product_discovery with 41 conversations.",
+      "24 conversations are flagged as unresolved.",
+      "18 conversations show order-flow friction.",
       "20 recommendation conversations led to user follow-through events."
     ],
     "recommendations": [
       {
         "title": "Compliance Risk: Missing Safety Framing",
         "severity": "critical",
-        "relatedCount": 38,
-        "percentage": 38.0,
-        "description": "38 conversations include risk-sensitive claims without disclaimers.",
+        "relatedCount": 41,
+        "percentage": 41.0,
+        "description": "41 conversations include risk-sensitive claims without disclaimers.",
         "rootCauses": [
-          "Inadequate training data for safety framing, leading to inconsistent language injection",
-          "Insufficient intent identification algorithms, causing delayed isolation of risk-sensitive contexts",
-          "Lack of real-time claim moderation checks, resulting in undetected safety risks"
+          "Inconsistent application of safety protocols due to inadequate agent training",
+          "Insufficient contextual understanding leading to missed risk-sensitive intents",
+          "Inadequate review processes allowing non-compliant responses to reach customers"
         ],
         "suggestedActions": [
-          "Develop and integrate AI-driven safety framing templates, adaptable to various risk-sensitive contexts",
-          "Implement a multi-step intent identification process, incorporating both keyword-based and semantic analysis",
-          "Establish a hybrid moderation approach, combining automated checks with human review for high-risk conversations"
+          "Develop and implement comprehensive agent training programs focusing on safety protocols and risk-sensitive contexts",
+          "Integrate AI-driven intent detection tools to identify and flag high-risk conversations for escalated review",
+          "Establish a multi-tiered review process with clear guidelines and checklists to ensure compliance and consistency in responses"
         ],
         "affectedCategories": [
           "risk_and_compliance"
         ],
-        "metricBaseline": 0.38,
-        "metricTarget": 0.23,
+        "metricBaseline": 0.41,
+        "metricTarget": 0.26,
         "interventionEffort": "low",
         "interventionRisk": "medium",
         "hypothesis": "Automated safety framing will materially reduce compliance exposure.",
@@ -88,25 +92,25 @@
       {
         "title": "Low Recommendation Follow-Through",
         "severity": "medium",
-        "relatedCount": 59,
-        "percentage": 92.1875,
-        "description": "Recommendation conversion is 7.8% for this widget.",
+        "relatedCount": 58,
+        "percentage": 90.625,
+        "description": "Recommendation conversion is 9.4% for this widget.",
         "rootCauses": [
           "Insufficient contextual understanding leading to mismatched recommendations",
-          "Lack of transparency in the recommendation algorithm eroding user trust",
-          "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
+          "Lack of transparency in recommendation logic eroding user trust",
+          "Inadequate feedback mechanisms to refine recommendation accuracy"
         ],
         "suggestedActions": [
-          "Implement intent-based recommendation filtering with contextual cues",
-          "Develop and display clear, concise explanations for each recommended item",
-          "Conduct A/B testing on CTA formats and recommendation layouts to optimize user engagement"
+          "Implement intent-based recommendation filtering with user behavior analytics",
+          "Develop and display concise, explainable summaries for each recommended item",
+          "Conduct A/B testing on CTAs with varying prominence and messaging to optimize engagement"
         ],
         "affectedCategories": [
           "product_discovery",
           "product_page_question"
         ],
-        "metricBaseline": 0.078125,
-        "metricTarget": 0.178125,
+        "metricBaseline": 0.09375,
+        "metricTarget": 0.19375,
         "interventionEffort": "medium",
         "interventionRisk": "low",
         "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
@@ -116,22 +120,22 @@
         "evidenceMetrics": {}
       },
       {
-        "title": "Inefficient User Information Collection",
+        "title": "Repetition Loop Issue",
         "severity": "medium",
-        "relatedCount": 12,
+        "relatedCount": 20,
         "percentage": 20.0,
-        "description": "Users are frequently not providing required information, leading to unresolved issues and increased conversation time.",
+        "description": "Users are experiencing repetition loops, where they repeat their questions and the assistant fails to resolve the issue, leading to frustration and potential drop-off.",
         "rootCauses": [
-          "did_not_provide_required_info",
-          "repeatedly_asked_about_order_status"
+          "Inadequate conversation flow design",
+          "Lack of contextual understanding"
         ],
         "suggestedActions": [
-          "Improve user prompts for required information",
-          "Enhance conversation flow to handle missing user input"
+          "Redesign conversation flows to handle repetition",
+          "Improve contextual understanding through training data updates"
         ],
         "affectedCategories": [
-          "userMistakes",
-          "qualityDimensionsAggregate"
+          "User Experience",
+          "Conversation Quality"
         ],
         "metricBaseline": 0.2,
         "metricTarget": 0.15,
@@ -140,20 +144,20 @@
         "hypothesis": null,
         "source": "llm_discovery",
         "confidence": 0.8,
-        "whyNew": "This issue is not covered by existing insights and is supported by metrics such as did_not_provide_required_info and unresolved_rate.",
+        "whyNew": "This issue is new because it focuses on the specific problem of repetition loops, which is not explicitly mentioned in the existing insights.",
         "evidenceMetrics": {
-          "did_not_provide_required_info": 12,
-          "unresolved_rate": 0.2
+          "repetition_rate": 0.2,
+          "repetition": 20
         }
       }
     ],
     "assistantMistakes": {
       "hallucinating": 0,
-      "wrong_product_suggestion": 0,
-      "health_claim_without_disclaimer": 38,
+      "wrong_product_suggestion": 3,
+      "health_claim_without_disclaimer": 40,
       "failed_escalation": 0,
       "no_recommendation_when_needed": 0,
-      "repetition": 18,
+      "repetition": 20,
       "short_answer": 0,
       "evasive_answer": 1
     },
@@ -165,13 +169,13 @@
       "did_not_follow_instructions": 0
     },
     "qualityDimensionsAggregate": {
-      "accuracy": 1.29,
-      "relevance": 1.74,
-      "clarity": 1.54,
-      "helpfulness": 1.54,
-      "tone": 1.23,
-      "efficiency": 1.07,
-      "escalation_handling": 0.11
+      "accuracy": 1.22,
+      "relevance": 1.43,
+      "clarity": 1.38,
+      "helpfulness": 1.19,
+      "tone": 1.15,
+      "efficiency": 0.87,
+      "escalation_handling": 0.43
     }
   },
   {
@@ -179,27 +183,27 @@
     "brandName": "Bluenectar",
     "totalConversations": 100,
     "qualityBreakdown": {
-      "good": 56,
-      "bad": 10,
-      "neutral": 34
+      "bad": 16,
+      "good": 52,
+      "neutral": 32
     },
     "outcomeBreakdown": {
-      "resolved": 93,
-      "unresolved": 6,
-      "drop_off": 1
+      "unresolved": 11,
+      "resolved": 87,
+      "drop_off": 2
     },
     "topIntents": [
       {
         "intent": "product_page_question",
-        "count": 66
-      },
-      {
-        "intent": "order_support",
-        "count": 15
+        "count": 67
       },
       {
         "intent": "product_discovery",
-        "count": 11
+        "count": 15
+      },
+      {
+        "intent": "order_support",
+        "count": 10
       },
       {
         "intent": "greeting",
@@ -213,46 +217,50 @@
     "topProblems": [
       {
         "problem": "risk_flagged",
-        "count": 35
-      },
-      {
-        "problem": "order_friction",
-        "count": 4
+        "count": 40
       },
       {
         "problem": "unresolved_need",
-        "count": 3
+        "count": 6
+      },
+      {
+        "problem": "order_friction",
+        "count": 6
+      },
+      {
+        "problem": "bad_recommendation",
+        "count": 1
       }
     ],
     "summaryPoints": [
-      "10 of 100 conversations are scored as bad quality.",
-      "Top intent is product_page_question with 66 conversations.",
-      "6 conversations are flagged as unresolved.",
-      "4 conversations show order-flow friction.",
+      "16 of 100 conversations are scored as bad quality.",
+      "Top intent is product_page_question with 67 conversations.",
+      "11 conversations are flagged as unresolved.",
+      "6 conversations show order-flow friction.",
       "2 recommendation conversations led to user follow-through events."
     ],
     "recommendations": [
       {
         "title": "Compliance Risk: Missing Safety Framing",
         "severity": "critical",
-        "relatedCount": 35,
-        "percentage": 35.0,
-        "description": "35 conversations include risk-sensitive claims without disclaimers.",
+        "relatedCount": 37,
+        "percentage": 37.0,
+        "description": "37 conversations include risk-sensitive claims without disclaimers.",
         "rootCauses": [
-          "Inconsistent application of safety protocols due to inadequate training of customer service representatives",
-          "Insufficient review and updating of knowledge base articles to reflect changing safety regulations and standards",
-          "Lack of clear guidelines for identifying and flagging high-risk conversations that require additional safety framing"
+          "Inconsistent application of safety protocols due to inadequate agent training",
+          "Insufficient contextual understanding leading to missed risk-sensitive intents",
+          "Inadequate review processes allowing non-compliant responses to reach customers"
         ],
         "suggestedActions": [
-          "Develop and implement a comprehensive training program for customer service representatives on safety protocols and regulations",
-          "Conduct a thorough review and update of knowledge base articles to ensure they reflect current safety standards and best practices",
-          "Establish a clear set of guidelines and checklists for identifying and escalating high-risk conversations that require additional safety framing"
+          "Develop and implement comprehensive agent training programs focusing on safety protocols and risk-sensitive intent identification",
+          "Integrate AI-powered contextual analysis tools to enhance intent detection and flag high-risk conversations for review",
+          "Establish a multi-tiered review process with clear escalation pathways for non-compliant responses"
         ],
         "affectedCategories": [
           "risk_and_compliance"
         ],
-        "metricBaseline": 0.35,
-        "metricTarget": 0.19999999999999998,
+        "metricBaseline": 0.37,
+        "metricTarget": 0.22,
         "interventionEffort": "low",
         "interventionRisk": "medium",
         "hypothesis": "Automated safety framing will materially reduce compliance exposure.",
@@ -264,25 +272,25 @@
       {
         "title": "Low Recommendation Follow-Through",
         "severity": "medium",
-        "relatedCount": 75,
-        "percentage": 94.9367088607595,
-        "description": "Recommendation conversion is 5.1% for this widget.",
+        "relatedCount": 76,
+        "percentage": 95.0,
+        "description": "Recommendation conversion is 5.0% for this widget.",
         "rootCauses": [
           "Insufficient contextual understanding leading to mismatched recommendations",
           "Lack of transparency in recommendation algorithms eroding user trust",
-          "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
+          "Inadequate feedback mechanisms to refine recommendation accuracy"
         ],
         "suggestedActions": [
-          "Implement intent-based recommendation filtering with real-time user feedback",
-          "Develop and display clear, concise explanations for each recommended product",
-          "Conduct A/B testing on prominent call-to-action placements and formats to optimize visibility and engagement"
+          "Implement intent-based recommendation filtering with user behavior analysis",
+          "Introduce explainable recommendation summaries to enhance user understanding and trust",
+          "Conduct A/B testing on recommendation layouts and CTAs to optimize visibility and engagement"
         ],
         "affectedCategories": [
           "product_discovery",
           "product_page_question"
         ],
-        "metricBaseline": 0.05063291139240506,
-        "metricTarget": 0.15063291139240506,
+        "metricBaseline": 0.05,
+        "metricTarget": 0.15000000000000002,
         "interventionEffort": "medium",
         "interventionRisk": "low",
         "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
@@ -292,60 +300,63 @@
         "evidenceMetrics": {}
       },
       {
-        "title": "High Repetition Rate in Conversations",
-        "severity": "medium",
-        "relatedCount": 10,
-        "percentage": 10.0,
-        "description": "The conversation data shows a repetition rate of 0.1, indicating that 10% of conversations involve repetitive interactions.",
+        "title": "Escalation Handling Inefficiencies",
+        "severity": "high",
+        "relatedCount": 11,
+        "percentage": 11.0,
+        "description": "The current escalation handling process is inefficient, leading to unresolved issues and potential customer dissatisfaction.",
         "rootCauses": [
-          "Insufficient Contextual Understanding",
-          "Lack of Personalization"
+          "ineffective escalation protocols",
+          "insufficient human support resources"
         ],
         "suggestedActions": [
-          "Improve Contextual Understanding",
-          "Enhance Personalization Capabilities"
+          "review and revise escalation protocols",
+          "increase human support resources"
         ],
         "affectedCategories": [
-          "User Experience"
+          "unresolved",
+          "escalation_handling"
         ],
-        "metricBaseline": 0.1,
-        "metricTarget": 0.05,
+        "metricBaseline": 0.11,
+        "metricTarget": 0.06,
         "interventionEffort": "medium",
-        "interventionRisk": "low",
+        "interventionRisk": "medium",
         "hypothesis": null,
         "source": "llm_discovery",
         "confidence": 0.8,
-        "whyNew": "This issue is new because it highlights a specific problem with conversation flow that was not previously identified.",
+        "whyNew": "This issue is new because it highlights a specific problem with the escalation handling process, which is not addressed by existing insights.",
         "evidenceMetrics": {
-          "repetition_rate": 0.1
+          "unresolved_rate": 0.11,
+          "escalation_handling": 0.55,
+          "failed_escalation": 0
         }
       }
     ],
     "assistantMistakes": {
       "hallucinating": 0,
-      "wrong_product_suggestion": 0,
-      "health_claim_without_disclaimer": 35,
+      "wrong_product_suggestion": 1,
+      "health_claim_without_disclaimer": 34,
       "failed_escalation": 0,
       "no_recommendation_when_needed": 0,
-      "repetition": 10,
+      "repetition": 11,
       "short_answer": 0,
-      "evasive_answer": 1
+      "evasive_answer": 0
     },
     "userMistakes": {
-      "never_responded": 4,
+      "never_responded": 9,
       "did_not_provide_required_info": 4,
-      "asked_unrelated_questions": 1,
+      "asked_unrelated_questions": 0,
       "ordering_mistake": 0,
       "did_not_follow_instructions": 0
     },
     "qualityDimensionsAggregate": {
-      "accuracy": 1.57,
-      "relevance": 1.89,
-      "clarity": 1.86,
-      "helpfulness": 1.8,
-      "tone": 1.45,
-      "efficiency": 1.48,
-      "escalation_handling": 0.18
+      "accuracy": 1.42,
+      "relevance": 1.74,
+      "clarity": 1.7,
+      "helpfulness": 1.55,
+      "tone": 1.31,
+      "efficiency": 1.17,
+      "escalation_handling": 0.55
     }
   },
   {
@@ -353,22 +364,23 @@
     "brandName": "Srisritattva",
     "totalConversations": 100,
     "qualityBreakdown": {
-      "neutral": 7,
-      "bad": 18,
-      "good": 75
+      "neutral": 16,
+      "bad": 23,
+      "good": 61
     },
     "outcomeBreakdown": {
-      "resolved": 82,
-      "unresolved": 18
+      "resolved": 77,
+      "unresolved": 22,
+      "drop_off": 1
     },
     "topIntents": [
       {
         "intent": "product_page_question",
-        "count": 63
+        "count": 66
       },
       {
         "intent": "order_support",
-        "count": 25
+        "count": 20
       },
       {
         "intent": "other",
@@ -376,58 +388,87 @@
       },
       {
         "intent": "product_discovery",
-        "count": 5
+        "count": 7
       }
     ],
     "topProblems": [
+      {
+        "problem": "unresolved_need",
+        "count": 9
+      },
       {
         "problem": "order_friction",
         "count": 8
       },
       {
-        "problem": "unresolved_need",
-        "count": 6
+        "problem": "risk_flagged",
+        "count": 5
       },
       {
         "problem": "login_loop",
         "count": 5
-      },
-      {
-        "problem": "risk_flagged",
-        "count": 1
       }
     ],
     "summaryPoints": [
-      "18 of 100 conversations are scored as bad quality.",
-      "Top intent is product_page_question with 63 conversations.",
-      "18 conversations are flagged as unresolved.",
+      "23 of 100 conversations are scored as bad quality.",
+      "Top intent is product_page_question with 66 conversations.",
+      "22 conversations are flagged as unresolved.",
       "5 conversations show login-loop friction.",
       "8 conversations show order-flow friction.",
       "4 recommendation conversations led to user follow-through events."
     ],
     "recommendations": [
       {
-        "title": "Low Recommendation Follow-Through",
+        "title": "Above-Baseline User Drop-Off",
         "severity": "medium",
-        "relatedCount": 58,
-        "percentage": 85.29411764705883,
-        "description": "Recommendation conversion is 14.7% for this widget.",
+        "relatedCount": 17,
+        "percentage": 17.0,
+        "description": "17.0% conversations dropped off, above this widget's dynamic risk threshold.",
         "rootCauses": [
-          "Insufficient contextual understanding leading to mismatched recommendations",
-          "Lack of transparency in recommendation algorithms eroding user trust",
-          "Inadequate feedback mechanisms to refine recommendation accuracy"
+          "Low perceived helpfulness of assistant responses, despite high relevance and clarity, indicating a mismatch between user needs and provided solutions",
+          "Inadequate intent-specific guidance in initial turns, leading to user frustration and drop-off",
+          "Insufficient value proposition in early conversation turns, failing to engage users and encourage continued interaction"
         ],
         "suggestedActions": [
-          "Implement intent-based recommendation filtering with explicit user feedback loops",
-          "Develop and display concise, understandable explanations for each recommended item",
-          "Conduct A/B testing on prominent call-to-action placements and formats to optimize visibility and engagement"
+          "Develop and deploy intent-specific response templates that prioritize user needs and provide actionable solutions",
+          "Conduct A/B testing of concise, value-oriented first responses versus more detailed, supportive responses to identify optimal engagement strategies",
+          "Implement a feedback mechanism to gauge user satisfaction and perceived helpfulness after key conversation turns, informing data-driven improvements to assistant responses"
+        ],
+        "affectedCategories": [
+          "all"
+        ],
+        "metricBaseline": 0.17,
+        "metricTarget": 0.09000000000000001,
+        "interventionEffort": "medium",
+        "interventionRisk": "low",
+        "hypothesis": "Reducing first-turn friction will improve continuation and lower drop-off.",
+        "source": "llm_enhanced",
+        "confidence": null,
+        "whyNew": null,
+        "evidenceMetrics": {}
+      },
+      {
+        "title": "Low Recommendation Follow-Through",
+        "severity": "medium",
+        "relatedCount": 59,
+        "percentage": 86.76470588235294,
+        "description": "Recommendation conversion is 13.2% for this widget.",
+        "rootCauses": [
+          "Insufficient contextual understanding leading to mismatched recommendations",
+          "Lack of transparency in the recommendation algorithm eroding user trust",
+          "Inadequate feedback mechanisms to refine and improve recommendation accuracy"
+        ],
+        "suggestedActions": [
+          "Implement intent-based recommendation filtering with real-time user feedback",
+          "Develop and display clear, concise explanations for each recommended item",
+          "Conduct A/B testing on prominent call-to-action placements and formats"
         ],
         "affectedCategories": [
           "product_discovery",
           "product_page_question"
         ],
-        "metricBaseline": 0.14705882352941177,
-        "metricTarget": 0.24705882352941178,
+        "metricBaseline": 0.1323529411764706,
+        "metricTarget": 0.2323529411764706,
         "interventionEffort": "medium",
         "interventionRisk": "low",
         "hypothesis": "Higher recommendation precision and clearer CTAs will improve conversion.",
@@ -435,99 +476,12 @@
         "confidence": null,
         "whyNew": null,
         "evidenceMetrics": {}
-      },
-      {
-        "title": "Assistant Repetition Pattern",
-        "severity": "medium",
-        "relatedCount": 16,
-        "percentage": 16.0,
-        "description": "16.0% conversations exhibit repetitive assistant behavior.",
-        "rootCauses": [
-          "Inadequate context understanding leading to repetitive responses",
-          "Insufficient feedback mechanisms to identify and break repetition loops",
-          "Lack of adaptive response generation to provide alternative solutions"
-        ],
-        "suggestedActions": [
-          "Implement a context-aware response system to reduce repetition",
-          "Develop and integrate a feedback loop to detect and break repetitive patterns",
-          "Design and deploy adaptive response templates to offer varied solutions"
-        ],
-        "affectedCategories": [
-          "all"
-        ],
-        "metricBaseline": 0.16,
-        "metricTarget": 0.08,
-        "interventionEffort": "low",
-        "interventionRisk": "low",
-        "hypothesis": "Loop detection with early alternatives will reduce repetition frequency.",
-        "source": "llm_enhanced",
-        "confidence": null,
-        "whyNew": null,
-        "evidenceMetrics": {}
-      },
-      {
-        "title": "Inconsistent Health Claim Disclaimer",
-        "severity": "medium",
-        "relatedCount": 10,
-        "percentage": 10.0,
-        "description": "The assistant failed to provide a disclaimer for health claims in 10 instances, which may lead to regulatory issues and damage to the brand's reputation.",
-        "rootCauses": [
-          "Lack of training data",
-          "Inadequate content review"
-        ],
-        "suggestedActions": [
-          "Review and update training data",
-          "Implement a content review process"
-        ],
-        "affectedCategories": [
-          "Health and Wellness"
-        ],
-        "metricBaseline": 0.1,
-        "metricTarget": 0.05,
-        "interventionEffort": "medium",
-        "interventionRisk": "low",
-        "hypothesis": null,
-        "source": "llm_discovery",
-        "confidence": 0.8,
-        "whyNew": "This issue is new because it highlights a specific problem with the assistant's handling of health claims, which is not covered by existing insights.",
-        "evidenceMetrics": {
-          "health_claim_without_disclaimer": 10
-        }
-      },
-      {
-        "title": "Unresolved User Needs",
-        "severity": "high",
-        "relatedCount": 18,
-        "percentage": 18.0,
-        "description": "18% of conversations remain unresolved, indicating a significant gap in addressing user needs and potentially leading to customer dissatisfaction and churn.",
-        "rootCauses": [
-          "Inadequate support resources",
-          "Insufficient assistant training"
-        ],
-        "suggestedActions": [
-          "Increase support resources",
-          "Improve assistant training"
-        ],
-        "affectedCategories": [
-          "Customer Support"
-        ],
-        "metricBaseline": 0.18,
-        "metricTarget": 0.13,
-        "interventionEffort": "medium",
-        "interventionRisk": "medium",
-        "hypothesis": null,
-        "source": "llm_discovery",
-        "confidence": 0.9,
-        "whyNew": "This issue is new because it focuses on the overall unresolved conversation rate, which is not explicitly covered by existing insights.",
-        "evidenceMetrics": {
-          "unresolved_rate": 0.18
-        }
       }
     ],
     "assistantMistakes": {
       "hallucinating": 0,
-      "wrong_product_suggestion": 0,
-      "health_claim_without_disclaimer": 10,
+      "wrong_product_suggestion": 1,
+      "health_claim_without_disclaimer": 25,
       "failed_escalation": 0,
       "no_recommendation_when_needed": 0,
       "repetition": 16,
@@ -535,20 +489,20 @@
       "evasive_answer": 0
     },
     "userMistakes": {
-      "never_responded": 4,
-      "did_not_provide_required_info": 0,
-      "asked_unrelated_questions": 1,
+      "never_responded": 11,
+      "did_not_provide_required_info": 3,
+      "asked_unrelated_questions": 2,
       "ordering_mistake": 0,
       "did_not_follow_instructions": 0
     },
     "qualityDimensionsAggregate": {
-      "accuracy": 1.58,
-      "relevance": 1.67,
-      "clarity": 1.74,
-      "helpfulness": 1.52,
-      "tone": 1.61,
-      "efficiency": 1.29,
-      "escalation_handling": 1.01
+      "accuracy": 1.35,
+      "relevance": 1.45,
+      "clarity": 1.5,
+      "helpfulness": 1.26,
+      "tone": 1.37,
+      "efficiency": 1.06,
+      "escalation_handling": 0.93
     }
   }
 ]

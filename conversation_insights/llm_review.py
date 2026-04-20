@@ -9,7 +9,7 @@ from typing import Any
 
 from conversation_insights.config import PACKAGE_DIR
 from conversation_insights.env_utils import load_env_file
-from conversation_insights.models import ConversationFeatureRecord, GroupedConversationRecord, QualityDimensions
+from conversation_insights.models import ConversationFeatureRecord, GroupedConversationRecord, MessageFlag, QualityDimensions
 from conversation_insights.text_utils import (
     ORDER_KEYWORDS,
     PRODUCT_DISCOVERY_KEYWORDS,
@@ -21,6 +21,34 @@ from conversation_insights.text_utils import (
 MODEL = "llama-3.3-70b-versatile"
 MIN_SECONDS_BETWEEN_CALLS = 2.0
 CACHE_SCHEMA_VERSION = 1
+
+MESSAGE_FLAG_EXAMPLES = """
+Example patterns observed in the current transcript corpus:
+1. User repeated question:
+   user: "Where is my order?" -> assistant asks for order number/phone -> user again: "Where is my order?"
+   flag output:
+   {"messageId":"<second_user_message_id>","sender":"user","flag":"user_repeated_question","label":"User Repeated Question","severity":"medium","reason":"User repeated the same order-status question after the previous answer did not resolve it."}
+
+2. Assistant repeated reply:
+   assistant repeats: "To track your order, please share both your order number and the phone number used when placing the order in a single message."
+   flag output:
+   {"messageId":"<second_repeated_agent_message_id>","sender":"agent","flag":"assistant_repeated_reply","label":"Assistant Repeated Reply","severity":"medium","reason":"Assistant repeated the same information request instead of moving the order flow forward."}
+
+3. Irrelevant recommendation:
+   user: "Which team should I take" and assistant replies with a list of herbal tea products.
+   flag output:
+   {"messageId":"<agent_message_id>","sender":"agent","flag":"assistant_irrelevant_recommendation","label":"Irrelevant Recommendation","severity":"high","reason":"Assistant recommended products that did not address the user's actual question."}
+
+4. Login loop:
+   user: "I'm already signed in" and assistant again says "To view your order details, please sign in to your account first."
+   flag output:
+   {"messageId":"<agent_message_id>","sender":"agent","flag":"assistant_login_loop","label":"Login Loop","severity":"high","reason":"Assistant kept redirecting the user to sign in even after the user said they were already signed in."}
+
+5. Escalation / handoff:
+   assistant: "To reach our team via WhatsApp, contact +91 ... with your order details."
+   flag output:
+   {"messageId":"<agent_message_id>","sender":"agent","flag":"assistant_handoff_to_human","label":"Human Handoff","severity":"low","reason":"Assistant moved the user to a human support channel for resolution."}
+""".strip()
 
 try:
     from groq import Groq
@@ -73,6 +101,7 @@ class ReviewResult:
     escalation_resolved: bool | None = None
     time_to_escalation_seconds: int | None = None
     resolution_blockers: dict[str, str] = field(default_factory=dict)
+    message_flags: list[MessageFlag] = field(default_factory=list)
 
 
 class GroqReviewer:
@@ -251,7 +280,9 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         text = (message.cleanText or message.rawText).strip()
         if len(text) > 1000:
             text = text[:1000] + "..."
-        transcript_lines.append(f"[{message.timestamp}] [{message.sender.upper()}] [{message.messageType}] {text}")
+        transcript_lines.append(
+            f"[messageId={message.messageId}] [{message.timestamp}] [{message.sender.upper()}] [{message.messageType}] {text}"
+        )
 
     transcript = "\n".join(transcript_lines)
     observable_meta = {
@@ -303,6 +334,9 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         '  "qualityDimensions": {"accuracy": 0, "relevance": 0, "clarity": 0, "helpfulness": 0, "tone": 0, "efficiency": 0, "escalationHandling": 0},\n'
         '  "escalation": {"needed": false, "triggered": false, "resolved": false, "timeToEscalationSeconds": 0},\n'
         '  "resolutionBlockers": {"rootCause": "", "assistantMitigation": ""},\n'
+        '  "messageFlags": [\n'
+        '    {"messageId": "exact_message_id_from_transcript", "sender": "user | agent", "flag": "snake_case_flag", "label": "Short Label", "severity": "low | medium | high", "reason": "one short reviewer-friendly explanation"}\n'
+        "  ],\n"
         '  "issues": ["short_snake_case_tags"],\n'
         '  "summary": "one short factual sentence",\n'
         '  "feedbackText": "one short dashboard-friendly explanation"\n'
@@ -331,7 +365,15 @@ def build_prompt(grouped_record: GroupedConversationRecord, feature_record: Conv
         "- If dropOff=true but response was relevant/helpful and user got actionable next step, do not force unresolved=true.\n"
         "- escalation.needed=true when unresolved/frustrated loops suggest human intervention.\n"
         "- Set escalationHandling low when escalation was needed but not triggered.\n"
+        "- messageFlags should include only the most useful review signals for humans, usually 0 to 6 items.\n"
+        "- Use exact messageId values from transcript for every messageFlags item.\n"
+        "- Prefer flags such as user_repeated_question, user_frustrated, assistant_repeated_reply, assistant_irrelevant_recommendation, assistant_login_loop, assistant_handoff_to_human, assistant_claim_risk, user_missing_required_info.\n"
+        "- Do not flag benign greetings or every normal product recommendation.\n"
+        "- If one message deserves multiple flags, you may return multiple messageFlags items for the same messageId.\n"
         "</rules>\n\n"
+        "<message_flag_examples>\n"
+        f"{MESSAGE_FLAG_EXAMPLES}\n"
+        "</message_flag_examples>\n\n"
         "<format>\n"
         f"{schema}\n"
         "</format>\n\n"
@@ -372,6 +414,7 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
     quality_data = get_review_value(data, "qualityDimensions", "quality_dimensions", {})
     escalation_data = get_review_value(data, "escalation", "_escalation", {})
     blockers_data = get_review_value(data, "resolutionBlockers", "resolution_blockers", {})
+    message_flags_data = get_review_value(data, "messageFlags", "message_flags", [])
 
     if not isinstance(quality_data, dict):
         quality_data = {}
@@ -379,6 +422,8 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
         escalation_data = {}
     if not isinstance(blockers_data, dict):
         blockers_data = {}
+    if not isinstance(message_flags_data, list):
+        message_flags_data = []
 
     quality_dimensions = QualityDimensions(
         accuracy=clamp_dimension(quality_data.get("accuracy", 0)),
@@ -395,6 +440,8 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
         text = normalize_optional_string(value)
         if text is not None:
             resolution_blockers[str(key)] = text
+
+    message_flags = parse_message_flags(message_flags_data)
 
     return ReviewResult(
         initial_intent=normalize_enum(
@@ -460,6 +507,7 @@ def parse_review_data(data: dict[str, Any]) -> ReviewResult:
         escalation_resolved=parse_optional_bool(escalation_data.get("resolved")),
         time_to_escalation_seconds=parse_optional_int(escalation_data.get("timeToEscalationSeconds")),
         resolution_blockers=resolution_blockers,
+        message_flags=message_flags,
     )
 
 
@@ -469,6 +517,44 @@ def get_review_value(data: dict[str, Any], camel_key: str, snake_key: str, defau
     if snake_key in data:
         return data[snake_key]
     return default
+
+
+def parse_message_flags(items: list[Any]) -> list[MessageFlag]:
+    parsed_flags: list[MessageFlag] = []
+    seen: set[tuple[str, str]] = set()
+
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+
+        message_id = normalize_optional_string(item.get("messageId") or item.get("message_id"))
+        flag = normalize_optional_string(item.get("flag") or item.get("type"))
+        reason = normalize_optional_string(item.get("reason") or item.get("note") or item.get("feedback"))
+        sender = normalize_optional_string(item.get("sender"))
+        label = normalize_optional_string(item.get("label"))
+        severity = normalize_enum(item.get("severity"), {"low", "medium", "high"}, "medium")
+
+        if message_id is None or flag is None or reason is None:
+            continue
+
+        normalized_flag = flag.strip().lower().replace(" ", "_").replace("-", "_")
+        dedupe_key = (message_id, normalized_flag)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+
+        parsed_flags.append(
+            MessageFlag(
+                messageId=message_id,
+                sender=(sender or "").lower(),
+                flag=normalized_flag,
+                label=label or humanize_flag_label(normalized_flag),
+                reason=reason,
+                severity=severity,
+            )
+        )
+
+    return parsed_flags
 
 
 def finalize_review_result(
@@ -489,6 +575,7 @@ def finalize_review_result(
     combined_text = f"{full_user_text} {full_agent_text}".strip()
     handoff_detected = has_doctor_or_whatsapp_handoff(grouped_record)
     actionable_next_step = has_actionable_next_step(full_agent_text)
+    review.message_flags = normalize_message_flags(grouped_record, review.message_flags)
 
     if review.initial_intent == "other":
         review.initial_intent = infer_initial_intent(full_user_text, feature_record)
@@ -578,6 +665,13 @@ def finalize_review_result(
     if not review.feedback_text:
         review.feedback_text = review.summary
 
+    if not review.user_repetition and has_message_flag(review.message_flags, "user_repeated_question"):
+        review.user_repetition = True
+    if not review.frustrated and has_message_flag(review.message_flags, "user_frustrated"):
+        review.frustrated = True
+    if not review.assistant_repetition and has_message_flag(review.message_flags, "assistant_repeated_reply"):
+        review.assistant_repetition = True
+
     if _quality_dimensions_are_default(review.quality_dimensions):
         review.quality_dimensions = infer_quality_dimensions(review)
 
@@ -620,6 +714,43 @@ def finalize_review_result(
         }
 
     return review
+
+
+def normalize_message_flags(
+    grouped_record: GroupedConversationRecord,
+    message_flags: list[MessageFlag],
+) -> list[MessageFlag]:
+    message_lookup = {message.messageId: message for message in grouped_record.messages}
+    normalized: list[MessageFlag] = []
+    seen: set[tuple[str, str]] = set()
+
+    for flag in message_flags:
+        message = message_lookup.get(flag.messageId)
+        if message is None:
+            continue
+
+        normalized_flag = flag.flag.strip().lower().replace(" ", "_").replace("-", "_")
+        dedupe_key = (flag.messageId, normalized_flag)
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+
+        normalized.append(
+            MessageFlag(
+                messageId=flag.messageId,
+                sender=message.sender,
+                flag=normalized_flag,
+                label=flag.label or humanize_flag_label(normalized_flag),
+                reason=flag.reason,
+                severity=normalize_enum(flag.severity, {"low", "medium", "high"}, "medium"),
+            )
+        )
+
+    return normalized
+
+
+def has_message_flag(message_flags: list[MessageFlag], flag_name: str) -> bool:
+    return any(flag.flag == flag_name for flag in message_flags)
 
 
 def _quality_dimensions_are_default(dimensions: QualityDimensions) -> bool:
@@ -685,6 +816,10 @@ def normalize_optional_string(value: Any) -> str | None:
         return None
     text = str(value).strip()
     return text or None
+
+
+def humanize_flag_label(flag: str) -> str:
+    return flag.replace("_", " ").strip().title()
 
 
 def normalize_enum(value: Any, allowed: set[str], default: str) -> str:
@@ -963,6 +1098,7 @@ def apply_review_result(feature_record: ConversationFeatureRecord, review: Revie
     llm.escalationResolved = bool(review.escalation_resolved)
     llm.timeToEscalationSeconds = review.time_to_escalation_seconds
     llm.resolutionBlockers = review.resolution_blockers
+    llm.messageFlags = review.message_flags
 
     recalculate_score(feature_record)
 

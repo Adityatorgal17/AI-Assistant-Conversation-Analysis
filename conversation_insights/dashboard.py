@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import sys
 from pathlib import Path
@@ -55,6 +56,12 @@ GLOSSARY_TERMS: dict[str, str] = {
     "feedbackClick": "A feedback/action button was clicked in the conversation metadata.",
     "assistantRepetition": "The assistant repeated itself or got stuck in a loop.",
     "qualityDimensions": "Per-conversation quality scores across accuracy, relevance, clarity, helpfulness, tone, efficiency, and escalation handling.",
+}
+
+FLAG_STYLE_MAP = {
+    "danger": {"bg": "#3b1717", "border": "#d26a6a", "text": "#ffb0b0"},
+    "warning": {"bg": "#3b2e12", "border": "#d1a34d", "text": "#f4d58d"},
+    "info": {"bg": "#132638", "border": "#4f86c6", "text": "#b4d4ff"},
 }
 
 
@@ -344,32 +351,155 @@ def render_conversation_detail(
         st.info("Grouped conversation record not available.")
         return
 
+    message_flags = build_message_flag_lookup(feature_row, grouped_row)
+    flagged_messages = [(index, flags) for index, flags in message_flags.items() if flags]
+
+    if flagged_messages:
+        st.markdown("**Flagged Message Signals**")
+        for index, flags in flagged_messages:
+            message = grouped_row["messages"][index]
+            sender = str(message.get("sender", "")).upper()
+            labels = ", ".join(flag["label"] for flag in flags)
+            st.caption(f"{sender} | {message.get('timestamp', '')} | {labels}")
+    else:
+        st.caption("No LLM message flags were returned for this conversation.")
+
     # Chat-like layout: user left, assistant right
-    for message in grouped_row["messages"]:
+    for index, message in enumerate(grouped_row["messages"]):
         sender = message["sender"].lower()
-        text = message["cleanText"] or message["rawText"]
+        text = (message["cleanText"] or message["rawText"]).strip()
         timestamp = message["timestamp"]
         message_type = message["messageType"]
-        
+        flags = message_flags.get(index, [])
+
         if sender == "user":
-            # User message: left side (blue background)
             left_col, right_col = st.columns([1, 3])
             with left_col:
                 st.markdown(f"**USER** `{message_type}`")
                 st.caption(timestamp)
+                render_message_flag_badges(flags)
             with right_col:
-                st.markdown(f"<div style='background-color: #1976d2; color: white; padding: 12px; border-radius: 8px; font-size: 14px;'>{text}</div>", unsafe_allow_html=True)
-        
+                render_message_bubble(text, bubble_color="#1976d2", align="left")
+                render_message_flag_notes(flags, align="left")
+
         elif sender == "agent":
-            # Agent message: right side (purple background)
             left_col, right_col = st.columns([3, 1])
             with left_col:
-                st.markdown(f"<div style='background-color: #7b1fa2; color: white; padding: 12px; border-radius: 8px; font-size: 14px;'>{text}</div>", unsafe_allow_html=True)
+                render_message_bubble(text, bubble_color="#7b1fa2", align="right")
+                render_message_flag_notes(flags, align="right")
             with right_col:
                 st.markdown(f"**AGENT** `{message_type}`")
                 st.caption(timestamp)
-        
+                render_message_flag_badges(flags)
+
         st.divider()
+
+
+def build_message_flag_lookup(
+    feature_row: dict[str, Any] | None,
+    grouped_row: dict[str, Any],
+) -> dict[int, list[dict[str, str]]]:
+    messages = grouped_row.get("messages", [])
+    message_flags: dict[int, list[dict[str, str]]] = {index: [] for index in range(len(messages))}
+
+    llm_review = ((feature_row or {}).get("llmReview") or {}) if isinstance(feature_row, dict) else {}
+    raw_flags = llm_review.get("messageFlags", [])
+    if not isinstance(raw_flags, list):
+        return message_flags
+
+    message_index_by_id = {
+        str(message.get("messageId")): index
+        for index, message in enumerate(messages)
+        if message.get("messageId") is not None
+    }
+
+    for raw_flag in raw_flags:
+        if not isinstance(raw_flag, dict):
+            continue
+        message_id = str(raw_flag.get("messageId") or "").strip()
+        message_index = message_index_by_id.get(message_id)
+        if message_index is None:
+            continue
+
+        label = str(raw_flag.get("label") or humanize_flag(str(raw_flag.get("flag") or ""))).strip()
+        reason = str(raw_flag.get("reason") or "").strip()
+        severity = str(raw_flag.get("severity") or "medium").strip().lower()
+        message_flags[message_index].append(
+            {
+                "label": label or "Flagged Message",
+                "note": reason or label or "LLM flagged this message for reviewer attention.",
+                "tone": tone_for_flag(severity, str(raw_flag.get("flag") or "")),
+            }
+        )
+
+    return message_flags
+
+
+def render_message_bubble(text: str, bubble_color: str, align: str) -> None:
+    text_html = html.escape(text).replace("\n", "<br>")
+    justify = "flex-start" if align == "left" else "flex-end"
+    st.markdown(
+        (
+            f"<div style='display:flex; justify-content:{justify};'>"
+            f"<div style='max-width: 92%; background-color: {bubble_color}; color: white; "
+            "padding: 12px; border-radius: 8px; font-size: 14px; line-height: 1.5;'>"
+            f"{text_html}"
+            "</div></div>"
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def render_message_flag_badges(flags: list[dict[str, str]]) -> None:
+    if not flags:
+        return
+
+    badge_html = []
+    for flag in flags:
+        style = FLAG_STYLE_MAP.get(flag["tone"], FLAG_STYLE_MAP["info"])
+        badge_html.append(
+            f"<span style='display:inline-block; margin: 4px 6px 0 0; padding: 3px 8px; "
+            f"border-radius: 999px; border: 1px solid {style['border']}; background: {style['bg']}; "
+            f"color: {style['text']}; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; "
+            f"text-transform: uppercase;'>{html.escape(flag['label'])}</span>"
+        )
+    st.markdown("".join(badge_html), unsafe_allow_html=True)
+
+
+def render_message_flag_notes(flags: list[dict[str, str]], align: str) -> None:
+    if not flags:
+        return
+
+    note_html = []
+    for flag in flags:
+        style = FLAG_STYLE_MAP.get(flag["tone"], FLAG_STYLE_MAP["info"])
+        note_html.append(
+            f"<div style='margin-top: 6px; max-width: 92%; border-left: 3px solid {style['border']}; "
+            f"padding: 8px 10px; color: {style['text']}; background: rgba(255,255,255,0.03); "
+            f"font-size: 12px; border-radius: 6px;'>{html.escape(flag['note'])}</div>"
+        )
+
+    st.markdown(
+        f"<div style='display:flex; flex-direction:column; align-items:{'flex-start' if align == 'left' else 'flex-end'};'>"
+        + "".join(note_html)
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def tone_for_flag(severity: str, flag_name: str) -> str:
+    normalized_flag = flag_name.strip().lower()
+    if severity == "high":
+        return "danger"
+    if normalized_flag in {"assistant_claim_risk", "user_frustrated", "assistant_login_loop"}:
+        return "danger"
+    if severity == "medium":
+        return "warning"
+    return "info"
+
+
+def humanize_flag(flag_name: str) -> str:
+    return flag_name.replace("_", " ").strip().title() or "Flagged Message"
 
 
 @st.cache_data(show_spinner=False)

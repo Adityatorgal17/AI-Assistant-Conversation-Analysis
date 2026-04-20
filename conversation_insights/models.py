@@ -64,6 +64,16 @@ class ConversationMeta:
 
 
 @dataclass(slots=True)
+class MessageFlag:
+    messageId: str
+    sender: str
+    flag: str
+    label: str
+    reason: str
+    severity: str = "medium"
+
+
+@dataclass(slots=True)
 class LLMReview:
     completed: bool = False
     provider: str | None = None
@@ -111,6 +121,7 @@ class LLMReview:
     escalationResolved: bool | None = None
     timeToEscalationSeconds: int | None = None
     resolutionBlockers: dict[str, str] = field(default_factory=dict)
+    messageFlags: list[MessageFlag] = field(default_factory=list)
 
 
 @dataclass(slots=True)
